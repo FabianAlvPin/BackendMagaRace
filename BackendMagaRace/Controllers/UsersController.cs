@@ -1,6 +1,7 @@
 ﻿using BackendMagaRace.Dtos;
 using BackendMagaRace.Services;
 using Microsoft.AspNetCore.Mvc;
+using static BackendMagaRace.Services.UserService;
 
 namespace BackendMagaRace.Controllers
 {
@@ -19,20 +20,30 @@ namespace BackendMagaRace.Controllers
         [HttpPost("create")]
         public async Task<IActionResult> Create([FromBody] UserCreateDto dto)
         {
-            // Crear usuario y wallet en DB
-            var user = await _userService.CreateAsync(
-                email: dto.Email,
-                username: dto.Username,
-                password: dto.Password // opcional: hash dentro del servicio
-            );
-
-            return Ok(new UserProfileDto
+            try
             {
-                Id = user.Id,
-                Username = user.Username,
-                Balance = user.Wallet.Balance
-            });
+                var user = await _userService.CreateAsync(
+                    dto.Email,
+                    dto.Username,
+                    dto.Password
+                );
+
+                return Ok(new UserProfileDto
+                {
+                    Id = user.Id,
+                    Username = user.Username,
+                    Balance = user.Wallet.Balance
+                });
+            }
+            catch (DomainException ex)
+            {
+                return StatusCode(ex.StatusCode, new
+                {
+                    error = ex.Message
+                });
+            }
         }
+
 
         // GET /users/{id}
         [HttpGet("{id}")]

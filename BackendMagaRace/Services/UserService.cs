@@ -14,10 +14,27 @@ namespace BackendMagaRace.Services
         {
             _context = context;
         }
+        public class DomainException : Exception
+        {
+            public int StatusCode { get; }
+
+            public DomainException(string message, int statusCode = 400)
+                : base(message)
+            {
+                StatusCode = statusCode;
+            }
+        }
+
 
         // Crear usuario con wallet y password hash
         public async Task<User> CreateAsync(string email, string username, string password)
         {
+            if (await _context.Users.AnyAsync(u => u.Email == email))
+                throw new DomainException("EMAIL_EXISTS");
+
+            if (await _context.Users.AnyAsync(u => u.Username == username))
+                throw new DomainException("USERNAME_EXISTS");
+
             var user = new User
             {
                 Id = Guid.NewGuid(),
@@ -37,8 +54,10 @@ namespace BackendMagaRace.Services
 
             _context.Users.Add(user);
             await _context.SaveChangesAsync();
+
             return user;
         }
+
 
         // Buscar usuario por Id
         public async Task<User?> GetByIdAsync(Guid id)
