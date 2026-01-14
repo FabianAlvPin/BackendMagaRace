@@ -23,6 +23,7 @@ namespace BackendMagaRace.Controllers
 
             return Ok(new
             {
+                race.RoomName,
                 race.Id,
                 race.TrackId,
                 race.EntryCost,

@@ -20,6 +20,7 @@ namespace BackendMagaRace.Services
             {
                 Id = Guid.NewGuid(),
                 TrackId = dto.TrackId,
+                RoomName = dto.RoomName,
                 EntryCost = dto.EntryCost,
                 MaxPlayers = dto.MaxPlayers,
                 Laps = dto.Laps
