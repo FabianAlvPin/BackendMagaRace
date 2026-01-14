@@ -23,7 +23,8 @@ namespace BackendMagaRace.Services
                 RoomName = dto.RoomName,
                 EntryCost = dto.EntryCost,
                 MaxPlayers = dto.MaxPlayers,
-                Laps = dto.Laps
+                Laps = dto.Laps,
+                Status = RaceStatus.Waiting
             };
 
             _context.OnlineRaces.Add(race);

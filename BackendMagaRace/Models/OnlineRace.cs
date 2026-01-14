@@ -12,8 +12,8 @@ namespace BackendMagaRace.Models
         public int MaxPlayers { get; set; }
         public int Laps { get; set; }
 
-        public bool IsFinished { get; set; }
-
+        public RaceStatus Status { get; set; }
         public ICollection<OnlineRacePlayer> Players { get; set; }
+          = new List<OnlineRacePlayer>();
     }
 }

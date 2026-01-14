@@ -93,7 +93,9 @@ namespace BackendMagaRace.Data
             modelBuilder.Entity<OnlineRace>(e =>
             {
                 e.HasKey(x => x.Id);
-
+                e.Property(x => x.Status)
+                    .HasConversion<int>()   
+                    .IsRequired();
                 e.HasMany(x => x.Players)
                     .WithOne(x => x.OnlineRace)
                     .HasForeignKey(x => x.OnlineRaceId)
