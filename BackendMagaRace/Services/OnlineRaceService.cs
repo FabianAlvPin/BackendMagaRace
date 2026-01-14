@@ -43,5 +43,26 @@ namespace BackendMagaRace.Services
 
             await _context.SaveChangesAsync();
         }
+        public async Task StartRace(Guid raceId)
+        {
+            var race = await _context.OnlineRaces
+                .Include(r => r.Players)
+                .FirstOrDefaultAsync(r => r.Id == raceId);
+
+            if (race == null)
+                throw new Exception("Carrera no existe");
+
+            if (race.Status != RaceStatus.Waiting)
+                throw new Exception("La carrera ya inició");
+
+            if (race.Players.Count < 2)
+                throw new Exception("No hay suficientes jugadores");
+
+            race.Status = RaceStatus.InProgress;
+            race.StartedAt = DateTime.UtcNow;
+
+            await _context.SaveChangesAsync();
+        }
+
     }
 }

@@ -96,6 +96,8 @@ namespace BackendMagaRace.Data
                 e.Property(x => x.Status)
                     .HasConversion<int>()   
                     .IsRequired();
+                e.Property(x => x.CreatedAt)
+                    .HasDefaultValueSql("now()");
                 e.HasMany(x => x.Players)
                     .WithOne(x => x.OnlineRace)
                     .HasForeignKey(x => x.OnlineRaceId)
