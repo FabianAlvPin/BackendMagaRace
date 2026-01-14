@@ -16,6 +16,7 @@ var jwtIssuer = builder.Configuration["Jwt:Issuer"] ?? "MagaRaceAPI";
 
 // ===== Servicios =====
 builder.Services.AddControllers();
+builder.Services.AddScoped<OnlineRaceService>();
 
 // Swagger + JWT
 builder.Services.AddEndpointsApiExplorer();
