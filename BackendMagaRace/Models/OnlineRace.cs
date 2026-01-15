@@ -13,7 +13,7 @@ namespace BackendMagaRace.Models
         public int Laps { get; set; }
 
         public RaceStatus Status { get; set; }
-
+        public Guid OwnerUserId { get; set; }
         public DateTime CreatedAt { get; set; }
         public DateTime? StartedAt { get; set; }
         public DateTime? FinishedAt { get; set; }

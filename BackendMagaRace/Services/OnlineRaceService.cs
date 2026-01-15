@@ -19,6 +19,7 @@ namespace BackendMagaRace.Services
             var race = new OnlineRace
             {
                 Id = Guid.NewGuid(),
+                OwnerUserId = dto.OwnerUserId,
                 TrackId = dto.TrackId,
                 RoomName = dto.RoomName,
                 EntryCost = dto.EntryCost,
@@ -32,37 +33,72 @@ namespace BackendMagaRace.Services
             return race;
         }
 
-        public async Task Join(Guid raceId, Guid userId)
-        {
-            _context.OnlineRacePlayers.Add(new OnlineRacePlayer
-            {
-                Id = Guid.NewGuid(),
-                OnlineRaceId = raceId,
-                UserId = userId
-            });
-
-            await _context.SaveChangesAsync();
-        }
-        public async Task StartRace(Guid raceId)
+        public async Task JoinRaceAsync(Guid raceId, Guid userId)
         {
             var race = await _context.OnlineRaces
                 .Include(r => r.Players)
                 .FirstOrDefaultAsync(r => r.Id == raceId);
 
             if (race == null)
-                throw new Exception("Carrera no existe");
+                throw new InvalidOperationException("La carrera no existe");
 
             if (race.Status != RaceStatus.Waiting)
-                throw new Exception("La carrera ya inició");
+                throw new InvalidOperationException("La carrera ya comenzó");
+
+            if (race.Players.Count >= race.MaxPlayers)
+                throw new InvalidOperationException("La carrera está llena");
+
+            var alreadyJoined = race.Players
+                .Any(p => p.UserId == userId);
+
+            if (alreadyJoined)
+                throw new InvalidOperationException("El jugador ya está inscrito");
+
+            var player = new OnlineRacePlayer
+            {
+                Id = Guid.NewGuid(),
+                OnlineRaceId = race.Id,
+                UserId = userId,
+                IsOwner = race.OwnerUserId == userId,
+                JoinedAt = DateTime.UtcNow,
+                IsConnected = true
+            };
+
+            _context.OnlineRacePlayers.Add(player);
+            await _context.SaveChangesAsync();
+        }
+
+        public async Task<OnlineRace> StartRaceAsync(Guid raceId, Guid userId)
+        {
+            var race = await _context.OnlineRaces
+                .Include(r => r.Players)
+                .FirstOrDefaultAsync(r => r.Id == raceId);
+
+            if (race == null)
+                throw new InvalidOperationException("RACE_NOT_FOUND");
+
+            // Solo el creador puede iniciar (opcional pero recomendado)
+            var isOwner = race.Players.Any(p => p.UserId == userId && p.IsOwner);
+            if (!isOwner)
+                throw new InvalidOperationException("NOT_RACE_OWNER");
+
+            // Idempotente
+            if (race.Status == RaceStatus.InProgress)
+                return race;
+
+            if (race.Status != RaceStatus.Waiting)
+                throw new InvalidOperationException("RACE_NOT_WAITING");
 
             if (race.Players.Count < 2)
-                throw new Exception("No hay suficientes jugadores");
+                throw new InvalidOperationException("NOT_ENOUGH_PLAYERS");
 
             race.Status = RaceStatus.InProgress;
             race.StartedAt = DateTime.UtcNow;
 
             await _context.SaveChangesAsync();
+            return race;
         }
+
 
     }
 }
