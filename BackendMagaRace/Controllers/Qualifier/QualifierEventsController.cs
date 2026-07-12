@@ -40,7 +40,8 @@ namespace BackendMagaRace.Controllers.Qualifier
         }
 
 
-        [Authorize(Roles = "Admin")]
+        [Authorize]
+        //[Authorize(Roles = "Admin")]
         [HttpPost]
         public async Task<IActionResult> CreateEvent(
           [FromBody] CreateQualifierEventDto dto)
@@ -51,7 +52,8 @@ namespace BackendMagaRace.Controllers.Qualifier
         }
 
 
-        [Authorize(Roles = "Admin")]
+        //[Authorize(Roles = "Admin")]
+        [Authorize]
         [HttpPost("{id}/close")]
         public async Task<IActionResult> CloseEvent(Guid id)
         {
