@@ -58,6 +58,12 @@ builder.Services.AddSwaggerGen(options =>
 builder.Services.AddScoped<UserService>();
 builder.Services.AddScoped<JwtService>();
 builder.Services.AddScoped<IWalletService, WalletService>();
+builder.Services.AddScoped<IQualifierService, QualifierService>();
+
+// Servicios Qualifier
+builder.Services.AddScoped<IQualifierService, QualifierService>();
+builder.Services.AddScoped<IQualifierEntryService, QualifierEntryService>();
+builder.Services.AddScoped<IQualifierPrizeService, QualifierPrizeService>();
 
 // ===== Autenticación JWT =====
 builder.Services.AddAuthentication(options =>
@@ -86,14 +92,13 @@ builder.Services.AddDbContext<AppDbContext>(options =>
 var app = builder.Build();
 
 // ===== Middleware =====
-if (app.Environment.IsDevelopment())
-{
+
     app.UseSwagger();
     app.UseSwaggerUI(c =>
     {
         c.SwaggerEndpoint("/swagger/v1/swagger.json", "MagaRace API v1");
     });
-}
+
 
 app.UseAuthentication();
 app.UseAuthorization();

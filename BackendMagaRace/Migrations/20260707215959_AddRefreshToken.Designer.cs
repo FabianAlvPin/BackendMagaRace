@@ -3,6 +3,7 @@ using System;
 using BackendMagaRace.Data;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 
@@ -11,9 +12,11 @@ using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 namespace BackendMagaRace.Migrations
 {
     [DbContext(typeof(AppDbContext))]
-    partial class AppDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260707215959_AddRefreshToken")]
+    partial class AddRefreshToken
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -203,12 +206,6 @@ namespace BackendMagaRace.Migrations
                     b.Property<decimal>("BasePrize")
                         .HasColumnType("numeric");
 
-                    b.Property<int>("CarCategory")
-                        .HasColumnType("integer");
-
-                    b.Property<int>("Direction")
-                        .HasColumnType("integer");
-
                     b.Property<DateTime>("EndsAt")
                         .HasColumnType("timestamp with time zone");
 
@@ -218,17 +215,11 @@ namespace BackendMagaRace.Migrations
                     b.Property<bool>("IsClosed")
                         .HasColumnType("boolean");
 
-                    b.Property<int>("Laps")
-                        .HasColumnType("integer");
-
                     b.Property<DateTime>("StartsAt")
                         .HasColumnType("timestamp with time zone");
 
                     b.Property<Guid>("TrackId")
                         .HasColumnType("uuid");
-
-                    b.Property<int>("Transmission")
-                        .HasColumnType("integer");
 
                     b.HasKey("Id");
 

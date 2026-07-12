@@ -3,6 +3,7 @@ using System;
 using BackendMagaRace.Data;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 
@@ -11,9 +12,11 @@ using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 namespace BackendMagaRace.Migrations
 {
     [DbContext(typeof(AppDbContext))]
-    partial class AppDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260312210640_AddQualifier")]
+    partial class AddQualifier
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -164,61 +167,22 @@ namespace BackendMagaRace.Migrations
                     b.ToTable("OnlineRacePlayers");
                 });
 
-            modelBuilder.Entity("BackendMagaRace.Models.QualifierEntry", b =>
-                {
-                    b.Property<Guid>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("uuid");
-
-                    b.Property<DateTime>("ActiveUntil")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.Property<decimal>("EntryCost")
-                        .HasColumnType("numeric");
-
-                    b.Property<DateTime>("PurchasedAt")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.Property<Guid>("QualifierEventId")
-                        .HasColumnType("uuid");
-
-                    b.Property<Guid>("UserId")
-                        .HasColumnType("uuid");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("QualifierEventId");
-
-                    b.HasIndex("UserId");
-
-                    b.ToTable("QualifierEntries");
-                });
-
             modelBuilder.Entity("BackendMagaRace.Models.QualifierEvent", b =>
                 {
                     b.Property<Guid>("Id")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("uuid");
 
-                    b.Property<decimal>("BasePrize")
-                        .HasColumnType("numeric");
-
-                    b.Property<int>("CarCategory")
-                        .HasColumnType("integer");
-
-                    b.Property<int>("Direction")
-                        .HasColumnType("integer");
-
                     b.Property<DateTime>("EndsAt")
                         .HasColumnType("timestamp with time zone");
 
-                    b.Property<decimal>("EntryCost")
-                        .HasColumnType("numeric");
+                    b.Property<int>("EntryCost")
+                        .HasColumnType("integer");
 
                     b.Property<bool>("IsClosed")
                         .HasColumnType("boolean");
 
-                    b.Property<int>("Laps")
+                    b.Property<int>("PrizePool")
                         .HasColumnType("integer");
 
                     b.Property<DateTime>("StartsAt")
@@ -227,9 +191,6 @@ namespace BackendMagaRace.Migrations
                     b.Property<Guid>("TrackId")
                         .HasColumnType("uuid");
 
-                    b.Property<int>("Transmission")
-                        .HasColumnType("integer");
-
                     b.HasKey("Id");
 
                     b.HasIndex("TrackId");
@@ -237,63 +198,31 @@ namespace BackendMagaRace.Migrations
                     b.ToTable("QualifierEvents");
                 });
 
-            modelBuilder.Entity("BackendMagaRace.Models.QualifierPrize", b =>
+            modelBuilder.Entity("BackendMagaRace.Models.QualifierSession", b =>
                 {
                     b.Property<Guid>("Id")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("uuid");
 
-                    b.Property<decimal?>("FixedAmount")
-                        .HasPrecision(18, 2)
-                        .HasColumnType("numeric(18,2)");
+                    b.Property<DateTime>("ActiveUntil")
+                        .HasColumnType("timestamp with time zone");
 
-                    b.Property<int>("FromPosition")
+                    b.Property<int?>("BestLapMs")
                         .HasColumnType("integer");
-
-                    b.Property<decimal?>("PrizePercent")
-                        .HasPrecision(5, 2)
-                        .HasColumnType("numeric(5,2)");
 
                     b.Property<Guid>("QualifierEventId")
                         .HasColumnType("uuid");
-
-                    b.Property<int>("ToPosition")
-                        .HasColumnType("integer");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("QualifierEventId");
-
-                    b.ToTable("QualifierPrizes");
-                });
-
-            modelBuilder.Entity("BackendMagaRace.Models.RefreshToken", b =>
-                {
-                    b.Property<Guid>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("uuid");
-
-                    b.Property<DateTime>("ExpiresAt")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.Property<bool>("Revoked")
-                        .HasColumnType("boolean");
-
-                    b.Property<string>("Token")
-                        .IsRequired()
-                        .HasColumnType("text");
 
                     b.Property<Guid>("UserId")
                         .HasColumnType("uuid");
 
                     b.HasKey("Id");
 
-                    b.HasIndex("Token")
-                        .IsUnique();
+                    b.HasIndex("QualifierEventId");
 
-                    b.HasIndex("UserId");
+                    b.HasIndex("UserId", "QualifierEventId");
 
-                    b.ToTable("RefreshTokens");
+                    b.ToTable("QualifierSessions");
                 });
 
             modelBuilder.Entity("BackendMagaRace.Models.Track", b =>
@@ -375,36 +304,6 @@ namespace BackendMagaRace.Migrations
                     b.ToTable("Wallets");
                 });
 
-            modelBuilder.Entity("QualifierSession", b =>
-                {
-                    b.Property<Guid>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("uuid");
-
-                    b.Property<DateTime>("ActiveUntil")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.Property<int?>("BestLapMs")
-                        .HasColumnType("integer");
-
-                    b.Property<DateTime>("CreatedAt")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.Property<Guid>("QualifierEventId")
-                        .HasColumnType("uuid");
-
-                    b.Property<Guid>("UserId")
-                        .HasColumnType("uuid");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("QualifierEventId");
-
-                    b.HasIndex("UserId", "QualifierEventId");
-
-                    b.ToTable("QualifierSessions");
-                });
-
             modelBuilder.Entity("BackendMagaRace.Models.LapTime", b =>
                 {
                     b.HasOne("BackendMagaRace.Models.Track", "Track")
@@ -443,25 +342,6 @@ namespace BackendMagaRace.Migrations
                     b.Navigation("User");
                 });
 
-            modelBuilder.Entity("BackendMagaRace.Models.QualifierEntry", b =>
-                {
-                    b.HasOne("BackendMagaRace.Models.QualifierEvent", "Event")
-                        .WithMany("Entries")
-                        .HasForeignKey("QualifierEventId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.HasOne("BackendMagaRace.Models.User", "User")
-                        .WithMany()
-                        .HasForeignKey("UserId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.Navigation("Event");
-
-                    b.Navigation("User");
-                });
-
             modelBuilder.Entity("BackendMagaRace.Models.QualifierEvent", b =>
                 {
                     b.HasOne("BackendMagaRace.Models.Track", "Track")
@@ -473,40 +353,7 @@ namespace BackendMagaRace.Migrations
                     b.Navigation("Track");
                 });
 
-            modelBuilder.Entity("BackendMagaRace.Models.QualifierPrize", b =>
-                {
-                    b.HasOne("BackendMagaRace.Models.QualifierEvent", "Event")
-                        .WithMany("Prizes")
-                        .HasForeignKey("QualifierEventId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.Navigation("Event");
-                });
-
-            modelBuilder.Entity("BackendMagaRace.Models.RefreshToken", b =>
-                {
-                    b.HasOne("BackendMagaRace.Models.User", "User")
-                        .WithMany()
-                        .HasForeignKey("UserId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.Navigation("User");
-                });
-
-            modelBuilder.Entity("BackendMagaRace.Models.Wallet", b =>
-                {
-                    b.HasOne("BackendMagaRace.Models.User", "User")
-                        .WithOne("Wallet")
-                        .HasForeignKey("BackendMagaRace.Models.Wallet", "UserId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.Navigation("User");
-                });
-
-            modelBuilder.Entity("QualifierSession", b =>
+            modelBuilder.Entity("BackendMagaRace.Models.QualifierSession", b =>
                 {
                     b.HasOne("BackendMagaRace.Models.QualifierEvent", "Event")
                         .WithMany("Sessions")
@@ -525,6 +372,17 @@ namespace BackendMagaRace.Migrations
                     b.Navigation("User");
                 });
 
+            modelBuilder.Entity("BackendMagaRace.Models.Wallet", b =>
+                {
+                    b.HasOne("BackendMagaRace.Models.User", "User")
+                        .WithOne("Wallet")
+                        .HasForeignKey("BackendMagaRace.Models.Wallet", "UserId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("User");
+                });
+
             modelBuilder.Entity("BackendMagaRace.Models.OnlineRace", b =>
                 {
                     b.Navigation("Players");
@@ -532,10 +390,6 @@ namespace BackendMagaRace.Migrations
 
             modelBuilder.Entity("BackendMagaRace.Models.QualifierEvent", b =>
                 {
-                    b.Navigation("Entries");
-
-                    b.Navigation("Prizes");
-
                     b.Navigation("Sessions");
                 });
 

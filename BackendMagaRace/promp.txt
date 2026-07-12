@@ -1,0 +1,719 @@
+# Contexto Backend MagaRace - Estado actual del proyecto
+
+## 1. Descripción general del proyecto
+
+MagaRace es un juego de carreras con modalidad competitiva y pagos reales.
+
+El jugador puede:
+
+* Correr en pistas.
+* Registrar tiempos de vuelta.
+* Participar en eventos tipo **Qualifier**.
+* Pagar una entrada para participar.
+* Competir por posiciones en rankings.
+* Recibir premios según posición.
+
+Backend desarrollado en:
+
+* ASP.NET Core Web API (.NET)
+* Entity Framework Core
+* PostgreSQL
+* Arquitectura basada en:
+
+  * Controllers
+  * Services
+  * Interfaces
+  * DTOs
+  * Models
+  * DbContext
+
+---
+
+# 2. Arquitectura actual
+
+Estructura aproximada:
+
+```
+BackendMagaRace
+
+Controllers
+│
+├── QualifierController.cs
+│
+└── (pendientes separar)
+    ├── QualifierEventsController
+    ├── QualifierEntriesController
+    ├── QualifierSessionsController
+    ├── QualifierRankingController
+    └── QualifierResultsController
+
+
+Services
+
+├── Interfaces
+│   ├── IUserService.cs
+│   ├── IWalletService.cs
+│   ├── IQualifierService.cs
+│   ├── IQualifierEntryService.cs
+│   └── IQualifierPrizeService.cs
+│
+├── UserService.cs
+├── WalletService.cs
+├── QualifierService.cs
+├── QualifierEntryService.cs
+└── QualifierPrizeService.cs
+
+
+Models
+
+├── User.cs
+├── Wallet.cs
+├── LedgerEntry.cs
+├── Track.cs
+├── LapTime.cs
+├── QualifierEvent.cs
+├── QualifierSession.cs
+├── QualifierEntry.cs
+├── QualifierPrize.cs
+├── OnlineRace.cs
+└── OnlineRacePlayer.cs
+
+
+Dtos
+
+├── Qualifier
+│   ├── CreateQualifierEventDto
+│   ├── JoinQualifierDto
+│   ├── SubmitLapDto
+│   └── QualifierSessionDto
+│
+└── OnlineRace
+```
+
+---
+
+# 3. Modelos existentes
+
+## User
+
+Representa al jugador.
+
+Campos:
+
+```
+Id Guid
+Email
+PasswordHash
+Username
+IsActive
+CreatedAt
+```
+
+Relación:
+
+```
+User 1 ---- 1 Wallet
+User 1 ---- N QualifierSessions
+User 1 ---- N QualifierEntries
+```
+
+---
+
+# Wallet
+
+Maneja dinero disponible.
+
+Campos:
+
+```
+Id
+UserId
+Balance
+CreatedAt
+UpdatedAt
+```
+
+Relación:
+
+```
+User 1 ---- 1 Wallet
+```
+
+---
+
+# LedgerEntry
+
+Historial financiero.
+
+Campos:
+
+```
+Id
+UserId
+Type
+Amount
+Reference
+CreatedAt
+```
+
+Uso futuro:
+
+* Pago entrada qualifier
+* Premio ganado
+* Retiro
+* Ajustes
+
+---
+
+# Track
+
+Pistas disponibles.
+
+Campos:
+
+```
+Id
+Name
+IsActive
+```
+
+Ejemplo:
+
+"Cabo Negro"
+
+---
+
+# LapTime
+
+Tiempos generales de vuelta.
+
+Campos:
+
+```
+Id
+UserId
+TrackId
+TimeMs
+CreatedAt
+```
+
+Actualmente existe como ranking global.
+
+---
+
+# 4. Sistema Qualifier
+
+La modalidad principal actual.
+
+## QualifierEvent
+
+Representa un evento competitivo.
+
+Campos:
+
+```
+Id
+
+TrackId
+
+StartsAt
+EndsAt
+
+EntryCost
+
+PrizePool
+
+IsClosed
+```
+
+Relaciones:
+
+```
+Track
+ |
+ |
+QualifierEvent
+
+QualifierEvent
+ |
+ +---- Sessions
+ |
+ +---- Entries
+ |
+ +---- Prizes
+```
+
+Ejemplo:
+
+Evento:
+
+"Cabo Negro Qualifier"
+
+Duración:
+
+05-07-2026 hasta 30-07-2026
+
+---
+
+# QualifierSession
+
+Representa la sesión activa de un jugador.
+
+Campos:
+
+```
+Id
+
+UserId
+
+QualifierEventId
+
+ActiveUntil
+
+BestLapMs
+```
+
+Actualmente guarda:
+
+* usuario
+* evento
+* fecha de expiración
+* mejor vuelta
+
+El objetivo es NO guardar todas las vueltas individuales.
+
+Solo mantener:
+
+```
+Mejor tiempo del jugador dentro del evento
+```
+
+---
+
+# QualifierEntry
+
+Representa la compra de participación.
+
+Campos:
+
+```
+Id
+
+QualifierEventId
+
+UserId
+
+EntryCost
+
+PurchasedAt
+
+ActiveUntil
+```
+
+Uso:
+
+Cuando el jugador paga:
+
+1. Se descuenta wallet.
+2. Se crea Entry.
+3. Se habilita Session.
+
+---
+
+# QualifierPrize
+
+Define premios.
+
+Modelo actual:
+
+```
+Id
+
+QualifierEventId
+
+FromPosition
+
+ToPosition
+
+FixedAmount
+
+PrizePercent
+```
+
+Permite:
+
+Ejemplo:
+
+```
+Posición 1
+Premio fijo:
+100 USD
+
+
+Posición 2-5
+10% del pozo
+```
+
+Puede manejar:
+
+* Premio fijo
+* Premio proporcional al pozo
+
+---
+
+# 5. DbContext actual
+
+AppDbContext contiene:
+
+```csharp
+DbSet<User>
+DbSet<Wallet>
+DbSet<LedgerEntry>
+
+DbSet<LapTime>
+
+DbSet<QualifierEvent>
+DbSet<QualifierSession>
+DbSet<QualifierEntry>
+DbSet<QualifierPrize>
+
+DbSet<OnlineRace>
+DbSet<OnlineRacePlayer>
+```
+
+Configuraciones EF:
+
+* Relaciones User Wallet
+* Relaciones QualifierEvent Sessions
+* Relaciones QualifierEvent Prizes
+* Relaciones Cascade Delete
+* Índices para búsquedas
+
+---
+
+# 6. Servicios actuales
+
+## IQualifierService
+
+Debe contener:
+
+```csharp
+CreateEvent()
+
+Join()
+
+GetActiveSession()
+
+SubmitLap()
+
+GetRanking()
+
+GetPlayerPosition()
+```
+
+---
+
+# QualifierService
+
+Responsabilidades:
+
+## Crear evento
+
+Implementado:
+
+```csharp
+CreateEvent(CreateQualifierEventDto dto)
+```
+
+Crea:
+
+```
+QualifierEvent
+```
+
+Estado actual:
+
+FUNCIONANDO.
+
+---
+
+## Join
+
+Pendiente / en desarrollo.
+
+Debe:
+
+* validar evento activo
+* cobrar entrada
+* crear QualifierEntry
+* crear QualifierSession
+
+Flujo esperado:
+
+```
+Jugador
+ |
+POST /qualifier/join
+ |
+Wallet
+ |
+LedgerEntry
+ |
+QualifierEntry
+ |
+QualifierSession
+```
+
+---
+
+## SubmitLap
+
+Objetivo:
+
+El juego manda:
+
+```
+sessionId
+timeMs
+```
+
+El backend:
+
+1. Busca sesión.
+2. Valida ActiveUntil.
+3. Compara con BestLapMs.
+4. Actualiza si mejora.
+
+Ejemplo:
+
+Antes:
+
+```
+BestLapMs = 85000
+```
+
+Nueva vuelta:
+
+```
+82000
+```
+
+Actualiza.
+
+Si es peor:
+
+No hace nada.
+
+---
+
+## Ranking
+
+Debe devolver:
+
+Orden:
+
+```
+1 jugador A 75000ms
+2 jugador B 76000ms
+3 jugador C 79000ms
+```
+
+Ordenado por:
+
+```
+BestLapMs ASC
+```
+
+---
+
+## Player Position
+
+Debe devolver:
+
+Ejemplo:
+
+```json
+{
+ position:5,
+ bestLapMs:82000,
+ totalPlayers:200
+}
+```
+
+---
+
+# 7. Controllers actuales
+
+## QualifierController
+
+Actualmente maneja:
+
+### Crear evento
+
+```
+POST /qualifier/event
+```
+
+DTO:
+
+```json
+{
+ trackId,
+ startsAt,
+ endsAt,
+ entryCost,
+ prizePool
+}
+```
+
+### Join
+
+```
+POST /qualifier/join
+```
+
+### Obtener sesión
+
+```
+GET /qualifier/session/{userId}/{eventId}
+```
+
+### Enviar vuelta
+
+```
+POST /qualifier/session/{sessionId}/lap
+```
+
+### Ranking
+
+```
+GET /qualifier/ranking/{eventId}
+```
+
+### Posición jugador
+
+```
+GET /qualifier/position/{eventId}/{userId}
+```
+
+---
+
+# 8. Estado actual del juego (cliente)
+
+El juego actualmente:
+
+* Permite conducir.
+* Cuenta vueltas.
+* Calcula tiempo de vuelta.
+* Muestra:
+
+Tiempo mínimo sesión.
+
+Tiempo mínimo global.
+
+Actualmente:
+
+* No llama backend.
+* El ranking global es un valor local bruto.
+
+Próximo cambio:
+
+Enviar al backend:
+
+Cada mejora de vuelta:
+
+```
+POST /qualifier/session/{sessionId}/lap
+```
+
+con:
+
+```json
+{
+ timeMs: 82000
+}
+```
+
+---
+
+# 9. Próximos desarrollos recomendados
+
+Orden recomendado:
+
+## 1. Terminar Join
+
+Implementar:
+
+* cobro wallet
+* ledger
+* entry
+* session
+
+## 2. Implementar SubmitLap
+
+Validación:
+
+* sesión activa
+* evento vigente
+* actualizar mejor tiempo
+
+## 3. Ranking real
+
+Endpoint:
+
+```
+GET /qualifier/ranking/{eventId}
+```
+
+## 4. Cierre automático de evento
+
+Cuando:
+
+```
+EndsAt < Now()
+```
+
+Cambiar:
+
+```
+IsClosed=true
+```
+
+## 5. Pago premios
+
+Proceso:
+
+```
+Ranking final
+        |
+QualifierPrize
+        |
+LedgerEntry
+        |
+Wallet incremento
+```
+
+---
+
+# Estado actual confirmado
+
+FUNCIONANDO:
+
+✅ Proyecto ASP.NET
+✅ PostgreSQL conectado
+✅ EF Core funcionando
+✅ Modelos creados
+✅ QualifierEvent creado desde Swagger
+✅ DI con interfaces funcionando
+✅ CreateEvent implementado
+
+PENDIENTE:
+
+* Join completo
+* Pago entrada
+* Actualización de vueltas
+* Ranking online
+* Distribución premios
+* Separar controllers por responsabilidad
+
+Este documento representa el estado actual del backend MagaRace.
