@@ -161,7 +161,14 @@ namespace BackendMagaRace.Services
                     x.Laps,
                     x.EntryCost,
                     x.BasePrize,
-                    CurrentPrizePool = x.BasePrize + (x.Entries.Count * x.EntryCost)
+                    CurrentPrizePool = x.BasePrize + (x.Entries.Count * x.EntryCost),
+                    Prizes = x.Prizes.Select(p => new
+                    {
+                        p.Id,
+                        p.FromPosition,
+                        p.ToPosition,
+                        p.PrizePercent
+                    }).ToList()
                 })
                 .ToListAsync();
 
@@ -381,7 +388,7 @@ namespace BackendMagaRace.Services
                 Direction = dto.Direction,
                 CarCategory = dto.CarCategory,
                 Transmission = dto.Transmission,
-                Laps = dto.Laps
+                Laps = dto.Laps,
             };
 
             _context.QualifierEvents.Add(qualifierEvent);
