@@ -7,6 +7,7 @@ namespace BackendMagaRace.Models
     {
         public Guid Id { get; set; }
 
+        public string Name { get; set; } = string.Empty;
         public Guid TrackId { get; set; }
 
         public DateTime StartsAt { get; set; }

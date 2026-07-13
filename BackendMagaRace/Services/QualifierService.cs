@@ -152,7 +152,9 @@ namespace BackendMagaRace.Services
                 .Select(x => new
                 {
                     x.Id,
+                    x.Name,
                     x.TrackId,
+                    TrackName = x.Track.Name,
                     x.StartsAt,
                     x.EndsAt,
                     x.Direction,
@@ -379,6 +381,7 @@ namespace BackendMagaRace.Services
             var qualifierEvent = new QualifierEvent
             {
                 Id = Guid.NewGuid(),
+                Name = dto.Name,
                 TrackId = dto.TrackId,
                 StartsAt = dto.StartsAt,
                 EndsAt = dto.EndsAt,

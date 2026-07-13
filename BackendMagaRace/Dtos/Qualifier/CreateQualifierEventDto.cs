@@ -4,6 +4,7 @@ namespace BackendMagaRace.Dtos.Qualifier
 {
     public class CreateQualifierEventDto
     {
+        public string Name { get; set; } = string.Empty;
         public Guid TrackId { get; set; }
 
         public DateTime StartsAt { get; set; }
