@@ -5,6 +5,7 @@ using BackendMagaRace.Services;
 using BackendMagaRace.Services.Interfaces;
 using Microsoft.AspNetCore.Mvc;
 using System.Security.Claims;
+using System.IdentityModel.Tokens.Jwt;
 
 
 namespace BackendMagaRace.Controllers
@@ -21,33 +22,31 @@ namespace BackendMagaRace.Controllers
             _service = service;
         }
 
-     
 
-[HttpPost("join")]
-    public async Task<IActionResult> Join(
-    [FromBody] JoinQualifierDto dto)
-    {
-        var userIdClaim = User.FindFirst(ClaimTypes.NameIdentifier);
 
-        if (userIdClaim == null)
-            return Unauthorized("El token no contiene el identificador del usuario.");
-
-        var userId = Guid.Parse(userIdClaim.Value);
-
-        var session = await _service.Join(
-            userId,
-            dto.QualifierEventId
-        );
-
-        return Ok(new QualifierSessionDto
+        [HttpPost("join")]
+        public async Task<IActionResult> Join([FromBody] JoinQualifierDto dto)
         {
-            Id = session.Id,
-            ActiveUntil = session.ActiveUntil
-        });
-    }
+            var userIdClaim = User.FindFirst(ClaimTypes.NameIdentifier);
 
-    // verificar si tiene sesión activa
-    [HttpGet("session/{userId}/{eventId}")]
+            if (userIdClaim == null)
+                return Unauthorized("El token no contiene el identificador del usuario.");
+
+            var userId = Guid.Parse(userIdClaim.Value);
+
+            var session = await _service.Join(
+                userId,
+                dto.QualifierEventId
+            );
+
+            return Ok(new QualifierSessionDto
+            {
+                Id = session.Id,
+                ActiveUntil = session.ActiveUntil
+            });
+        }
+        // verificar si tiene sesión activa
+        [HttpGet("session/{userId}/{eventId}")]
         public async Task<IActionResult> GetSession(Guid userId, Guid eventId)
         {
             var session = await _service.GetActiveSession(userId, eventId);
