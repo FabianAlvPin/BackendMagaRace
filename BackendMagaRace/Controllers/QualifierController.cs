@@ -27,23 +27,27 @@ namespace BackendMagaRace.Controllers
         [HttpPost("join")]
         public async Task<IActionResult> Join([FromBody] JoinQualifierDto dto)
         {
-            var userIdClaim = User.FindFirst(ClaimTypes.NameIdentifier);
-
-            if (userIdClaim == null)
-                return Unauthorized("El token no contiene el identificador del usuario.");
-
-            var userId = Guid.Parse(userIdClaim.Value);
-
-            var session = await _service.Join(
-                userId,
-                dto.QualifierEventId
-            );
-
-            return Ok(new QualifierSessionDto
+            try
             {
-                Id = session.Id,
-                ActiveUntil = session.ActiveUntil
-            });
+                var userIdClaim = User.FindFirst(ClaimTypes.NameIdentifier);
+
+                if (userIdClaim == null)
+                    return Unauthorized("El token no contiene el identificador del usuario.");
+
+                var userId = Guid.Parse(userIdClaim.Value);
+
+                var session = await _service.Join(userId, dto.QualifierEventId);
+
+                return Ok(new QualifierSessionDto
+                {
+                    Id = session.Id,
+                    ActiveUntil = session.ActiveUntil
+                });
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, ex.ToString());
+            }
         }
         // verificar si tiene sesión activa
         [HttpGet("session/{userId}/{eventId}")]
