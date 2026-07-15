@@ -4,8 +4,9 @@ using BackendMagaRace.Models;
 using BackendMagaRace.Services;
 using BackendMagaRace.Services.Interfaces;
 using Microsoft.AspNetCore.Mvc;
-using System.Security.Claims;
 using System.IdentityModel.Tokens.Jwt;
+using System.Security.Claims;
+using static BackendMagaRace.Services.QualifierService;
 
 
 namespace BackendMagaRace.Controllers
@@ -44,8 +45,14 @@ namespace BackendMagaRace.Controllers
                     ActiveUntil = session.ActiveUntil
                 });
             }
+            catch (BusinessException ex)
+            {
+                // Error esperado (saldo, evento, wallet, etc.)
+                return BadRequest(ex.Message);
+            }
             catch (Exception ex)
             {
+                // Error inesperado
                 return StatusCode(500, ex.ToString());
             }
         }

@@ -30,113 +30,78 @@ namespace BackendMagaRace.Services
 
             return session;
         }
-
-        public async Task<QualifierSession> Join(
-     Guid userId,
-     Guid qualifierEventId)
+        public class BusinessException : Exception
+        {
+            public BusinessException(string message) : base(message)
+            {
+            }
+        }
+        public async Task<QualifierSession> Join(Guid userId, Guid qualifierEventId)
         {
             // 1. Validar si ya tiene sesión activa
-            var existingSession =
-                await _context.QualifierSessions
+            var existingSession = await _context.QualifierSessions
                 .FirstOrDefaultAsync(x =>
                     x.UserId == userId &&
                     x.QualifierEventId == qualifierEventId &&
                     x.ActiveUntil > DateTime.UtcNow);
 
-
             if (existingSession != null)
                 return existingSession;
 
-
-
             // 2. Validar evento
-            var qualifierEvent =
-                await _context.QualifierEvents
+            var qualifierEvent = await _context.QualifierEvents
                 .FirstOrDefaultAsync(x =>
                     x.Id == qualifierEventId &&
                     !x.IsClosed);
 
-
             if (qualifierEvent == null)
-                throw new Exception("Evento no disponible");
-
-
+                throw new BusinessException("El evento no existe o ya finalizó.");
 
             // 3. Verificar si ya compró entrada
-            var existingEntry =
-                await _context.QualifierEntries
+            var existingEntry = await _context.QualifierEntries
                 .FirstOrDefaultAsync(x =>
                     x.UserId == userId &&
                     x.QualifierEventId == qualifierEventId);
 
-
             // 4. Si no tiene entrada, cobrar
             if (existingEntry == null)
             {
-
-                var wallet =
-                    await _context.Wallets
-                    .FirstOrDefaultAsync(x =>
-                        x.UserId == userId);
-
+                var wallet = await _context.Wallets
+                    .FirstOrDefaultAsync(x => x.UserId == userId);
 
                 if (wallet == null)
-                    throw new Exception("Usuario sin wallet");
-
+                    throw new BusinessException("No se encontró la billetera del jugador.");
 
                 if (wallet.Balance < qualifierEvent.EntryCost)
-                    throw new Exception("Saldo insuficiente");
+                    throw new BusinessException(
+                        $"Saldo insuficiente. Saldo: ${wallet.Balance:N0} - Entrada: ${qualifierEvent.EntryCost:N0}");
 
-
-
-                // descontar saldo
                 wallet.Balance -= qualifierEvent.EntryCost;
 
-
-
-                // crear entrada
-                var entry = new QualifierEntry
+                _context.QualifierEntries.Add(new QualifierEntry
                 {
                     Id = Guid.NewGuid(),
-
                     UserId = userId,
-
                     QualifierEventId = qualifierEventId,
-
                     EntryCost = qualifierEvent.EntryCost,
-
                     PurchasedAt = DateTime.UtcNow,
-
                     ActiveUntil = qualifierEvent.EndsAt
-                };
-
-
-                _context.QualifierEntries.Add(entry);
+                });
             }
 
-
-
-            // 5. Crear nueva sesión
+            // 5. Crear sesión
             var session = new QualifierSession
             {
                 Id = Guid.NewGuid(),
-
                 UserId = userId,
-
                 QualifierEventId = qualifierEventId,
-
                 ActiveUntil = qualifierEvent.EndsAt,
-
                 BestLapMs = null
             };
 
-
             _context.QualifierSessions.Add(session);
 
-
-
             await _context.SaveChangesAsync();
-
 
             return session;
         }
