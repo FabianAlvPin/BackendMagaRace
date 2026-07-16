@@ -25,6 +25,7 @@ namespace BackendMagaRace.Controllers
 
         public class ApiError
         {
+            public string Code { get; set; } = "";
             public string Message { get; set; } = "";
         }
 
@@ -57,6 +58,7 @@ namespace BackendMagaRace.Controllers
             {
                 return BadRequest(new ApiError
                 {
+                    Code = ex.Code,
                     Message = ex.Message
                 });
             }

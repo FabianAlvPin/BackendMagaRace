@@ -32,8 +32,12 @@ namespace BackendMagaRace.Services
         }
         public class BusinessException : Exception
         {
-            public BusinessException(string message) : base(message)
+            public string Code { get; }
+
+            public BusinessException(string code, string message)
+                : base(message)
             {
+                Code = code;
             }
         }
         public async Task<QualifierSession> Join(Guid userId, Guid qualifierEventId)
@@ -55,7 +59,7 @@ namespace BackendMagaRace.Services
                     !x.IsClosed);
 
             if (qualifierEvent == null)
-                throw new BusinessException("El evento no existe o ya finalizó.");
+                throw new BusinessException("EVENT_NOT_AVAILABLE", "El evento no existe o ya finalizó.");
 
             // 3. Verificar si ya compró entrada
             var existingEntry = await _context.QualifierEntries
@@ -70,10 +74,10 @@ namespace BackendMagaRace.Services
                     .FirstOrDefaultAsync(x => x.UserId == userId);
 
                 if (wallet == null)
-                    throw new BusinessException("No se encontró la billetera del jugador.");
+                    throw new BusinessException("WALLET_NOT_FOUND", "No se encontró la billetera del jugador.");
 
                 if (wallet.Balance < qualifierEvent.EntryCost)
-                    throw new BusinessException(
+                    throw new BusinessException("INSUFFICIENT_BALANCE",
                         $"Saldo insuficiente. Saldo: ${wallet.Balance:N0} - Entrada: ${qualifierEvent.EntryCost:N0}");
 
                 wallet.Balance -= qualifierEvent.EntryCost;
