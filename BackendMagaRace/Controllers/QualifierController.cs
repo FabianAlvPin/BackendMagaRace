@@ -23,7 +23,10 @@ namespace BackendMagaRace.Controllers
             _service = service;
         }
 
-
+        public class ApiError
+        {
+            public string Message { get; set; } = "";
+        }
 
         [HttpPost("join")]
         public async Task<IActionResult> Join([FromBody] JoinQualifierDto dto)
@@ -33,7 +36,12 @@ namespace BackendMagaRace.Controllers
                 var userIdClaim = User.FindFirst(ClaimTypes.NameIdentifier);
 
                 if (userIdClaim == null)
-                    return Unauthorized("El token no contiene el identificador del usuario.");
+                {
+                    return Unauthorized(new ApiError
+                    {
+                        Message = "El token no contiene el identificador del usuario."
+                    });
+                }
 
                 var userId = Guid.Parse(userIdClaim.Value);
 
@@ -47,13 +55,17 @@ namespace BackendMagaRace.Controllers
             }
             catch (BusinessException ex)
             {
-                // Error esperado (saldo, evento, wallet, etc.)
-                return BadRequest(ex.Message);
+                return BadRequest(new ApiError
+                {
+                    Message = ex.Message
+                });
             }
             catch (Exception ex)
             {
-                // Error inesperado
-                return StatusCode(500, ex.ToString());
+                return StatusCode(500, new ApiError
+                {
+                    Message = "Ha ocurrido un error interno del servidor."
+                });
             }
         }
         // verificar si tiene sesión activa
