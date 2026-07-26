@@ -92,9 +92,18 @@ namespace BackendMagaRace.Controllers
             Guid sessionId,
             [FromBody] int timeMs)
         {
-            var userId = Guid.Parse(
-                User.FindFirst("sub")!.Value
-            );
+            var userIdClaim = User.FindFirst(ClaimTypes.NameIdentifier);
+
+            if (userIdClaim == null)
+            {
+                return Unauthorized(new ApiError
+                {
+                    Message = "El token no contiene el identificador del usuario."
+                });
+            }
+
+            var userId = Guid.Parse(userIdClaim.Value);
+           
 
 
             var result = await _service.SubmitLap(

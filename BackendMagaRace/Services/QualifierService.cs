@@ -300,21 +300,29 @@ namespace BackendMagaRace.Services
 
         public async Task<object> GetRanking(Guid eventId)
         {
-            var ranking =
-                await _context.QualifierSessions
+            var ranking = await _context.QualifierSessions
                 .Where(x =>
                     x.QualifierEventId == eventId &&
                     x.BestLapMs != null)
                 .OrderBy(x => x.BestLapMs)
                 .Select(x => new
                 {
+                    Position = 0,                 // se reemplaza más abajo
                     x.UserId,
-                    x.BestLapMs
+                    Username = x.User.Username,
+                    BestLapMs = x.BestLapMs.Value
                 })
                 .ToListAsync();
 
-
-            return ranking;
+            return ranking
+                .Select((x, index) => new
+                {
+                    Position = index + 1,
+                    x.UserId,
+                    x.Username,
+                    x.BestLapMs
+                })
+                .ToList();
         }
 
 
