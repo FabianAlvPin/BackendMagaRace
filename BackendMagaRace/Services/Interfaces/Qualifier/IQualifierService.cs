@@ -37,10 +37,10 @@ namespace BackendMagaRace.Services.Interfaces
 
 
 
-        Task<object> SubmitLap(
-           Guid userId,
-           Guid sessionId,
-           int timeMs);
+        Task<SubmitLapResponse> SubmitLap(
+            Guid userId,
+            Guid sessionId,
+            int timeMs);
 
 
 

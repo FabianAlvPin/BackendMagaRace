@@ -45,7 +45,7 @@ namespace BackendMagaRace.Controllers.Qualifier
 
 
 
-[HttpPost("session/{sessionId}/lap")]
+    [HttpPost("session/{sessionId}/lap")]
     public async Task<IActionResult> SubmitLap(
     Guid sessionId,
     [FromBody] int timeMs)

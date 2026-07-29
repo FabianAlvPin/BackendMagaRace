@@ -220,38 +220,70 @@ namespace BackendMagaRace.Services
 
 
 
-        public async Task<object> SubmitLap(
-    Guid userId,
-    Guid sessionId,
-    int timeMs)
+        public async Task<SubmitLapResponse> SubmitLap(
+          Guid userId,
+          Guid sessionId,
+          int timeMs)
         {
             var session =
-                await _context.QualifierSessions
-                .FirstOrDefaultAsync(x =>
-                    x.Id == sessionId &&
-                    x.UserId == userId);
-
+    await _context.QualifierSessions
+        .Include(x => x.User)
+        .FirstOrDefaultAsync(x =>
+            x.Id == sessionId &&
+            x.UserId == userId);
 
             if (session == null)
                 throw new Exception("Sesión inválida");
 
-
             if (session.ActiveUntil < DateTime.UtcNow)
                 throw new Exception("Sesión expirada");
 
-
-            if (session.BestLapMs == null ||
-                timeMs < session.BestLapMs)
+            // Guardar nuevo mejor tiempo
+            if (session.BestLapMs == null || timeMs < session.BestLapMs)
             {
                 session.BestLapMs = timeMs;
-
                 await _context.SaveChangesAsync();
             }
 
+            // Ranking completo del evento
+            var ranking = await _context.QualifierSessions
+                .Where(x =>
+                    x.QualifierEventId == session.QualifierEventId &&
+                    x.BestLapMs != null)
+                .OrderBy(x => x.BestLapMs)
+                .Select(x => new
+                {
+                    x.UserId,
+                    Username = x.User.Username,
+                    BestLapMs = x.BestLapMs!.Value
+                })
+                .ToListAsync();
 
-            return new
+            // Top 10
+            var top10 = ranking
+                .Take(10)
+                .Select((x, index) => new RankingItemDto
+                {
+                    Position = index + 1,
+                    UserId = x.UserId,
+                    Username = x.Username,
+                    BestLapMs = x.BestLapMs
+                })
+                .ToList();
+
+            // Mi posición
+            int myPosition = ranking.FindIndex(x => x.UserId == userId) + 1;
+
+            return new SubmitLapResponse
             {
-                bestLapMs = session.BestLapMs
+                Leader = top10.First(),
+                Me = new RankingItemDto
+                {
+                    Position = myPosition,
+                    UserId = userId,
+                    Username = session.User.Username,
+                    BestLapMs = session.BestLapMs.Value
+                }
             };
         }
         public async Task<object?> GetPlayerPosition(
