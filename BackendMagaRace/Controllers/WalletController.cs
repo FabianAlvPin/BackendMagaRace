@@ -38,8 +38,10 @@ namespace BackendMagaRace.Controllers
             return Ok(new { wallet.Balance });
         }
 
-        // POST /wallet/add -> agregar créditos
+        // POST /wallet/add -> agregar créditos (uso interno/admin: los flujos de depósito
+        // reales deben pasar por sus propios endpoints, no por este genérico)
         [HttpPost("add")]
+        [Authorize(Roles = "Admin")]
         public async Task<IActionResult> AddCredits([FromBody] WalletOperationDto dto)
         {
             if (dto.Amount <= 0) return BadRequest("Amount debe ser mayor que 0");
@@ -49,8 +51,9 @@ namespace BackendMagaRace.Controllers
             return Ok(new { message = "Créditos agregados" });
         }
 
-        // POST /wallet/subtract -> gastar créditos
+        // POST /wallet/subtract -> gastar créditos (uso interno/admin)
         [HttpPost("subtract")]
+        [Authorize(Roles = "Admin")]
         public async Task<IActionResult> SubtractCredits([FromBody] WalletOperationDto dto)
         {
             if (dto.Amount <= 0) return BadRequest("Amount debe ser mayor que 0");

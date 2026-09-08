@@ -14,12 +14,13 @@ namespace BackendMagaRace.Services
             _config = config;
         }
 
-        public string GenerateToken(string userId, string username)
+        public string GenerateToken(string userId, string username, string role = "Player")
         {
             var claims = new[]
             {
                 new Claim(JwtRegisteredClaimNames.Sub, userId),
-                new Claim(JwtRegisteredClaimNames.UniqueName, username)
+                new Claim(JwtRegisteredClaimNames.UniqueName, username),
+                new Claim(ClaimTypes.Role, role)
             };
 
             var key = new SymmetricSecurityKey(

@@ -52,7 +52,8 @@ namespace BackendMagaRace.Controllers
             var newAccessToken =
                 _jwt.GenerateToken(
                     token.User.Id.ToString(),
-                    token.User.Username
+                    token.User.Username,
+                    token.User.Role.ToString()
                 );
 
 
@@ -73,7 +74,8 @@ namespace BackendMagaRace.Controllers
 
             var token = _jwt.GenerateToken(
     user.Id.ToString(),
-    user.Username
+    user.Username,
+    user.Role.ToString()
 );
 
 

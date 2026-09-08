@@ -1,4 +1,5 @@
 ﻿using System;
+using BackendMagaRace.Models.Enums;
 
 namespace BackendMagaRace.Models
 {
@@ -12,6 +13,9 @@ namespace BackendMagaRace.Models
 
         // Datos públicos
         public string Username { get; set; } = null!;
+
+        // Rol (autorización)
+        public UserRole Role { get; set; } = UserRole.Player;
 
         // Estado
         public bool IsActive { get; set; } = true;
