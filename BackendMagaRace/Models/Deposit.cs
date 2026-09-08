@@ -29,8 +29,10 @@ namespace BackendMagaRace.Models
 
         // Transbank
         public string? TransbankToken { get; set; }
+        public string? TransbankFormUrl { get; set; }
         public string? BuyOrder { get; set; }
         public string? AuthorizationCode { get; set; }
+        public string? CardTypeCode { get; set; }
 
         // Transferencia bancaria: comprobante subido por el usuario
         public string? ReceiptUrl { get; set; }

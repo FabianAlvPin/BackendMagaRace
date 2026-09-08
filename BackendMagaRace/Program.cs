@@ -64,6 +64,9 @@ builder.Services.AddSingleton<IExchangeRateService, ExchangeRateService>();
 builder.Services.AddScoped<IDepositService, DepositService>();
 builder.Services.Configure<CompanyBankAccountOptions>(
     builder.Configuration.GetSection("CompanyBankAccount"));
+builder.Services.Configure<TransbankOptions>(
+    builder.Configuration.GetSection("Transbank"));
+builder.Services.AddSingleton<ITransbankService, TransbankService>();
 builder.Services.AddScoped<IQualifierService, QualifierService>();
 
 // Servicios Qualifier

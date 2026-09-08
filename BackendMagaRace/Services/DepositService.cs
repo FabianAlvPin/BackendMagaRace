@@ -1,8 +1,10 @@
 using BackendMagaRace.Data;
 using BackendMagaRace.Models;
 using BackendMagaRace.Models.Enums;
+using BackendMagaRace.Options;
 using BackendMagaRace.Services.Interfaces;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Options;
 
 namespace BackendMagaRace.Services
 {
@@ -13,12 +15,21 @@ namespace BackendMagaRace.Services
         private readonly AppDbContext _db;
         private readonly IExchangeRateService _fx;
         private readonly IWalletService _wallet;
+        private readonly ITransbankService _transbank;
+        private readonly TransbankOptions _transbankOptions;
 
-        public DepositService(AppDbContext db, IExchangeRateService fx, IWalletService wallet)
+        public DepositService(
+            AppDbContext db,
+            IExchangeRateService fx,
+            IWalletService wallet,
+            ITransbankService transbank,
+            IOptions<TransbankOptions> transbankOptions)
         {
             _db = db;
             _fx = fx;
             _wallet = wallet;
+            _transbank = transbank;
+            _transbankOptions = transbankOptions.Value;
         }
 
         public async Task<Deposit> CreateBankTransferDepositAsync(Guid userId, decimal amountClp)
@@ -143,6 +154,128 @@ namespace BackendMagaRace.Services
             deposit.AdminNotes = reason;
 
             await _db.SaveChangesAsync();
+        }
+
+        // ======================================================
+        // TRANSBANK
+        // ======================================================
+
+        public async Task<Deposit> CreateTransbankDepositAsync(Guid userId, decimal amountClp, TransbankPaymentMethod method, string returnUrl)
+        {
+            if (amountClp <= 0)
+                throw new InvalidOperationException("El monto debe ser mayor que 0");
+
+            var rate = await _fx.GetUsdtClpRateAsync();
+
+            var feeRate = method == TransbankPaymentMethod.Credit
+                ? _transbankOptions.CreditFeeRate
+                : _transbankOptions.DebitFeeRate;
+
+            var fee = Math.Round(amountClp * feeRate, 0, MidpointRounding.AwayFromZero);
+            var iva = Math.Round(fee * _transbankOptions.IvaRate, 0, MidpointRounding.AwayFromZero);
+            var totalClp = amountClp + fee + iva;
+
+            var deposit = new Deposit
+            {
+                Id = Guid.NewGuid(),
+                UserId = userId,
+                Method = DepositMethod.Transbank,
+                Status = DepositStatus.Pending,
+                AmountClp = amountClp,
+                TransbankFee = fee,
+                Iva = iva,
+                TotalClp = totalClp,
+                RateSnapshot = rate.Buy,
+                ExpectedUsdt = Math.Round(amountClp / rate.Buy, 8),
+                RateExpiresAt = DateTime.UtcNow.Add(QuoteValidity),
+                CreatedAt = DateTime.UtcNow
+            };
+
+            // Transbank exige buyOrder <= 26 caracteres
+            var buyOrder = "D" + deposit.Id.ToString("N")[..20];
+            var sessionId = userId.ToString("N");
+
+            var (token, formUrl) = _transbank.CreateTransaction(buyOrder, sessionId, totalClp, returnUrl);
+
+            deposit.BuyOrder = buyOrder;
+            deposit.TransbankToken = token;
+            deposit.TransbankFormUrl = formUrl;
+
+            _db.Deposits.Add(deposit);
+            await _db.SaveChangesAsync();
+            return deposit;
+        }
+
+        public async Task<Deposit?> GetForRedirectAsync(Guid depositId)
+        {
+            return await _db.Deposits.FirstOrDefaultAsync(d => d.Id == depositId);
+        }
+
+        private async Task<Deposit> GetByTransbankTokenAsync(string token)
+        {
+            var deposit = await _db.Deposits.FirstOrDefaultAsync(d => d.TransbankToken == token);
+            if (deposit == null)
+                throw new KeyNotFoundException("Depósito no encontrado");
+
+            return deposit;
+        }
+
+        public async Task<Deposit> CommitTransbankDepositAsync(string token)
+        {
+            var deposit = await GetByTransbankTokenAsync(token);
+
+            // Idempotencia: Transbank puede reintentar el POST de retorno
+            if (deposit.Status != DepositStatus.Pending)
+                return deposit;
+
+            var result = _transbank.CommitTransaction(token);
+
+            deposit.AuthorizationCode = result.AuthorizationCode;
+            deposit.CardTypeCode = result.PaymentTypeCode;
+
+            if (result.IsAuthorized)
+            {
+                await using var transaction = await _db.Database.BeginTransactionAsync();
+                try
+                {
+                    await _wallet.AddCreditsAsync(deposit.UserId, deposit.ExpectedUsdt, LedgerType.Purchase, deposit.Id.ToString());
+
+                    deposit.Status = DepositStatus.Completed;
+                    deposit.ReviewedAt = DateTime.UtcNow;
+
+                    await _db.SaveChangesAsync();
+                    await transaction.CommitAsync();
+                }
+                catch
+                {
+                    await transaction.RollbackAsync();
+                    throw;
+                }
+            }
+            else
+            {
+                deposit.Status = DepositStatus.Rejected;
+                deposit.AdminNotes = $"Transbank rechazó el pago (status={result.Status}, responseCode={result.ResponseCode})";
+                deposit.ReviewedAt = DateTime.UtcNow;
+                await _db.SaveChangesAsync();
+            }
+
+            return deposit;
+        }
+
+        public async Task<Deposit> MarkTransbankAbortedAsync(string token)
+        {
+            var deposit = await GetByTransbankTokenAsync(token);
+
+            if (deposit.Status == DepositStatus.Pending)
+            {
+                deposit.Status = DepositStatus.Rejected;
+                deposit.AdminNotes = "El usuario canceló el pago en Transbank";
+                deposit.ReviewedAt = DateTime.UtcNow;
+                await _db.SaveChangesAsync();
+            }
+
+            return deposit;
         }
     }
 }

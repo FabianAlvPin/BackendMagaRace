@@ -22,15 +22,18 @@ namespace BackendMagaRace.Controllers
         private readonly IDepositService _deposits;
         private readonly CompanyBankAccountOptions _bankAccount;
         private readonly IWebHostEnvironment _env;
+        private readonly IConfiguration _config;
 
         public DepositsController(
             IDepositService deposits,
             IOptions<CompanyBankAccountOptions> bankAccount,
-            IWebHostEnvironment env)
+            IWebHostEnvironment env,
+            IConfiguration config)
         {
             _deposits = deposits;
             _bankAccount = bankAccount.Value;
             _env = env;
+            _config = config;
         }
 
         private Guid GetUserIdFromToken()
@@ -141,6 +144,93 @@ namespace BackendMagaRace.Controllers
             {
                 return NotFound(new { error = ex.Message });
             }
+        }
+
+        // ======================================================
+        // TRANSBANK
+        // ======================================================
+
+        // POST /wallet/deposits/transbank
+        [HttpPost("transbank")]
+        public async Task<IActionResult> CreateTransbank([FromBody] CreateTransbankDepositDto dto)
+        {
+            try
+            {
+                var userId = GetUserIdFromToken();
+                var baseUrl = _config["PublicBaseUrl"]?.TrimEnd('/');
+                var returnUrl = $"{baseUrl}/wallet/deposits/transbank/return";
+
+                var deposit = await _deposits.CreateTransbankDepositAsync(userId, dto.AmountClp, dto.Method, returnUrl);
+                var redirectUrl = $"{baseUrl}/wallet/deposits/transbank/{deposit.Id}/start";
+
+                return Ok(new { deposit = ToResponseDto(deposit), redirectUrl });
+            }
+            catch (InvalidOperationException ex)
+            {
+                return BadRequest(new { error = ex.Message });
+            }
+        }
+
+        // GET /wallet/deposits/transbank/{id}/start
+        // Se abre en el navegador del dispositivo (sin JWT), por eso es anónimo.
+        [HttpGet("transbank/{id}/start")]
+        [AllowAnonymous]
+        public async Task<IActionResult> StartTransbank(Guid id)
+        {
+            var deposit = await _deposits.GetForRedirectAsync(id);
+
+            if (deposit == null
+                || deposit.Method != DepositMethod.Transbank
+                || deposit.Status != DepositStatus.Pending
+                || string.IsNullOrEmpty(deposit.TransbankToken)
+                || string.IsNullOrEmpty(deposit.TransbankFormUrl))
+            {
+                return NotFound("Depósito no válido o ya procesado");
+            }
+
+            var html = $@"<!DOCTYPE html>
+<html><body onload=""document.forms[0].submit()"">
+<form method=""POST"" action=""{deposit.TransbankFormUrl}"">
+<input type=""hidden"" name=""token_ws"" value=""{deposit.TransbankToken}"" />
+</form>
+Redirigiendo a Webpay...
+</body></html>";
+
+            return Content(html, "text/html");
+        }
+
+        // POST /wallet/deposits/transbank/return
+        // Transbank hace este POST (form-urlencoded) al terminar el pago o al cancelarlo.
+        [HttpPost("transbank/return")]
+        [AllowAnonymous]
+        public async Task<IActionResult> TransbankReturn(
+            [FromForm(Name = "token_ws")] string? tokenWs,
+            [FromForm(Name = "TBK_TOKEN")] string? tbkToken)
+        {
+            string html;
+            try
+            {
+                if (!string.IsNullOrEmpty(tokenWs))
+                {
+                    await _deposits.CommitTransbankDepositAsync(tokenWs);
+                    html = "<html><body><h3>Pago procesado. Puedes volver a la aplicación.</h3></body></html>";
+                }
+                else if (!string.IsNullOrEmpty(tbkToken))
+                {
+                    await _deposits.MarkTransbankAbortedAsync(tbkToken);
+                    html = "<html><body><h3>Pago cancelado. Puedes volver a la aplicación.</h3></body></html>";
+                }
+                else
+                {
+                    html = "<html><body><h3>Respuesta inválida de Transbank.</h3></body></html>";
+                }
+            }
+            catch (Exception)
+            {
+                html = "<html><body><h3>Ocurrió un problema procesando el pago. Puedes volver a la aplicación.</h3></body></html>";
+            }
+
+            return Content(html, "text/html");
         }
 
         // ======================================================
