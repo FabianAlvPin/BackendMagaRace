@@ -17,3 +17,7 @@ publish/
 # OS
 .DS_Store
 Thumbs.db
+
+# Comprobantes subidos por usuarios (contenido en runtime, no en el repo)
+BackendMagaRace/wwwroot/uploads/receipts/*
+!BackendMagaRace/wwwroot/uploads/receipts/.gitkeep

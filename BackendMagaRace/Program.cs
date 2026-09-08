@@ -1,4 +1,5 @@
 using BackendMagaRace.Data;
+using BackendMagaRace.Options;
 using BackendMagaRace.Services;
 using BackendMagaRace.Services.Interfaces;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
@@ -10,7 +11,7 @@ using System.Text;
 
 var builder = WebApplication.CreateBuilder(args);
 
-// ===== Configuración JWT =====
+// ===== Configuraciï¿½n JWT =====
 var jwtKey = builder.Configuration["Jwt:Key"] ?? "CLAVE_SUPER_SECRETA_CAMBIAR";
 var jwtIssuer = builder.Configuration["Jwt:Issuer"] ?? "MagaRaceAPI";
 
@@ -58,6 +59,11 @@ builder.Services.AddSwaggerGen(options =>
 builder.Services.AddScoped<UserService>();
 builder.Services.AddScoped<JwtService>();
 builder.Services.AddScoped<IWalletService, WalletService>();
+builder.Services.AddHttpClient();
+builder.Services.AddSingleton<IExchangeRateService, ExchangeRateService>();
+builder.Services.AddScoped<IDepositService, DepositService>();
+builder.Services.Configure<CompanyBankAccountOptions>(
+    builder.Configuration.GetSection("CompanyBankAccount"));
 builder.Services.AddScoped<IQualifierService, QualifierService>();
 
 // Servicios Qualifier
@@ -65,7 +71,7 @@ builder.Services.AddScoped<IQualifierService, QualifierService>();
 builder.Services.AddScoped<IQualifierEntryService, QualifierEntryService>();
 builder.Services.AddScoped<IQualifierPrizeService, QualifierPrizeService>();
 
-// ===== Autenticación JWT =====
+// ===== Autenticaciï¿½n JWT =====
 builder.Services.AddAuthentication(options =>
 {
     options.DefaultAuthenticateScheme = JwtBearerDefaults.AuthenticationScheme;
@@ -99,6 +105,8 @@ var app = builder.Build();
         c.SwaggerEndpoint("/swagger/v1/swagger.json", "MagaRace API v1");
     });
 
+
+app.UseStaticFiles();
 
 app.UseAuthentication();
 app.UseAuthorization();

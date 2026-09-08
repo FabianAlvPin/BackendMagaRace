@@ -28,11 +28,15 @@ namespace BackendMagaRace.Services
         }
 
         // Agregar créditos (ej: compra o premio)
+        // Si ya hay una transacción en curso en este DbContext (ej: un caller que
+        // combina esto con otro cambio de estado), se reutiliza en vez de anidar una nueva.
         public async Task AddCreditsAsync(Guid userId, decimal amount, LedgerType type, string reference)
         {
             if (amount <= 0) throw new Exception("El monto debe ser positivo");
 
-            using var transaction = await _db.Database.BeginTransactionAsync();
+            var ownsTransaction = _db.Database.CurrentTransaction == null;
+            var transaction = _db.Database.CurrentTransaction
+                ?? await _db.Database.BeginTransactionAsync();
             try
             {
                 var wallet = await GetWalletAsync(userId);
@@ -50,12 +54,16 @@ namespace BackendMagaRace.Services
                 });
 
                 await _db.SaveChangesAsync();
-                await transaction.CommitAsync();
+                if (ownsTransaction) await transaction.CommitAsync();
             }
             catch
             {
-                await transaction.RollbackAsync();
+                if (ownsTransaction) await transaction.RollbackAsync();
                 throw;
+            }
+            finally
+            {
+                if (ownsTransaction) await transaction.DisposeAsync();
             }
         }
 
@@ -64,7 +72,9 @@ namespace BackendMagaRace.Services
         {
             if (amount <= 0) throw new Exception("El monto debe ser positivo");
 
-            using var transaction = await _db.Database.BeginTransactionAsync();
+            var ownsTransaction = _db.Database.CurrentTransaction == null;
+            var transaction = _db.Database.CurrentTransaction
+                ?? await _db.Database.BeginTransactionAsync();
             try
             {
                 var wallet = await GetWalletAsync(userId);
@@ -85,12 +95,16 @@ namespace BackendMagaRace.Services
                 });
 
                 await _db.SaveChangesAsync();
-                await transaction.CommitAsync();
+                if (ownsTransaction) await transaction.CommitAsync();
             }
             catch
             {
-                await transaction.RollbackAsync();
+                if (ownsTransaction) await transaction.RollbackAsync();
                 throw;
+            }
+            finally
+            {
+                if (ownsTransaction) await transaction.DisposeAsync();
             }
         }
 

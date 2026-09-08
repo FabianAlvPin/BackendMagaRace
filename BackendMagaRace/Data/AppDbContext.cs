@@ -33,6 +33,10 @@ namespace BackendMagaRace.Data
         public DbSet<QualifierEntry> QualifierEntries => Set<QualifierEntry>();
 
         public DbSet<RefreshToken> RefreshTokens => Set<RefreshToken>();
+
+        public DbSet<WithdrawalAccount> WithdrawalAccounts => Set<WithdrawalAccount>();
+        public DbSet<Deposit> Deposits => Set<Deposit>();
+        public DbSet<Withdrawal> Withdrawals => Set<Withdrawal>();
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
 
@@ -221,6 +225,68 @@ namespace BackendMagaRace.Data
 
                 e.Property(x => x.ExpiresAt)
                     .IsRequired();
+            });
+
+            // ======================
+            // WITHDRAWAL ACCOUNT
+            // ======================
+
+            modelBuilder.Entity<WithdrawalAccount>(e =>
+            {
+                e.HasKey(x => x.Id);
+
+                e.HasIndex(x => x.UserId)
+                    .IsUnique();
+
+                e.HasOne(x => x.User)
+                    .WithMany()
+                    .HasForeignKey(x => x.UserId)
+                    .OnDelete(DeleteBehavior.Cascade);
+            });
+
+            // ======================
+            // DEPOSIT
+            // ======================
+
+            modelBuilder.Entity<Deposit>(e =>
+            {
+                e.HasKey(x => x.Id);
+
+                e.HasIndex(x => x.UserId);
+                e.HasIndex(x => x.Status);
+
+                e.HasOne(x => x.User)
+                    .WithMany()
+                    .HasForeignKey(x => x.UserId)
+                    .OnDelete(DeleteBehavior.Cascade);
+
+                e.Property(x => x.AmountClp).HasPrecision(18, 2);
+                e.Property(x => x.TransbankFee).HasPrecision(18, 2);
+                e.Property(x => x.Iva).HasPrecision(18, 2);
+                e.Property(x => x.TotalClp).HasPrecision(18, 2);
+                e.Property(x => x.RateSnapshot).HasPrecision(18, 4);
+                e.Property(x => x.ExpectedUsdt).HasPrecision(18, 8);
+            });
+
+            // ======================
+            // WITHDRAWAL
+            // ======================
+
+            modelBuilder.Entity<Withdrawal>(e =>
+            {
+                e.HasKey(x => x.Id);
+
+                e.HasIndex(x => x.UserId);
+                e.HasIndex(x => x.Status);
+
+                e.HasOne(x => x.User)
+                    .WithMany()
+                    .HasForeignKey(x => x.UserId)
+                    .OnDelete(DeleteBehavior.Cascade);
+
+                e.Property(x => x.AmountUsdt).HasPrecision(18, 8);
+                e.Property(x => x.RateSnapshot).HasPrecision(18, 4);
+                e.Property(x => x.ClpEquivalent).HasPrecision(18, 2);
             });
 
             base.OnModelCreating(modelBuilder);
