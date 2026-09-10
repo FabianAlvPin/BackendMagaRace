@@ -7,6 +7,8 @@ namespace BackendMagaRace.Dtos.Wallet
         public Guid Id { get; set; }
         public WithdrawalStatus Status { get; set; }
         public decimal AmountUsdt { get; set; }
+        public decimal FeeUsdt { get; set; }
+        public decimal NetUsdt { get; set; }
         public decimal RateSnapshot { get; set; }
         public decimal ClpEquivalent { get; set; }
         public string Bank { get; set; } = string.Empty;

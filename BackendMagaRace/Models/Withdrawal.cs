@@ -11,10 +11,17 @@ namespace BackendMagaRace.Models
 
         public WithdrawalStatus Status { get; set; } = WithdrawalStatus.Pending;
 
+        // Monto solicitado por el usuario; es lo que se retiene de su wallet
         public decimal AmountUsdt { get; set; }
+
+        // Comision retenida (ganancia) y neto efectivamente pagado (AmountUsdt - FeeUsdt)
+        public decimal FeeUsdt { get; set; }
+        public decimal NetUsdt { get; set; }
 
         // Tipo de cambio USDT/CLP congelado al solicitar el retiro
         public decimal RateSnapshot { get; set; }
+
+        // Calculado sobre NetUsdt (lo que efectivamente se le transfiere en CLP al usuario)
         public decimal ClpEquivalent { get; set; }
 
         // Copia de los datos bancarios al momento del retiro (no FK: si el usuario

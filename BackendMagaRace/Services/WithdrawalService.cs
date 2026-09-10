@@ -1,8 +1,10 @@
 using BackendMagaRace.Data;
 using BackendMagaRace.Models;
 using BackendMagaRace.Models.Enums;
+using BackendMagaRace.Options;
 using BackendMagaRace.Services.Interfaces;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Options;
 
 namespace BackendMagaRace.Services
 {
@@ -12,17 +14,20 @@ namespace BackendMagaRace.Services
         private readonly IExchangeRateService _fx;
         private readonly IWalletService _wallet;
         private readonly IWithdrawalAccountService _accounts;
+        private readonly WithdrawalOptions _options;
 
         public WithdrawalService(
             AppDbContext db,
             IExchangeRateService fx,
             IWalletService wallet,
-            IWithdrawalAccountService accounts)
+            IWithdrawalAccountService accounts,
+            IOptions<WithdrawalOptions> options)
         {
             _db = db;
             _fx = fx;
             _wallet = wallet;
             _accounts = accounts;
+            _options = options.Value;
         }
 
         public async Task<Withdrawal> CreateAsync(Guid userId, decimal amountUsdt)
@@ -35,7 +40,12 @@ namespace BackendMagaRace.Services
                 throw new InvalidOperationException("Debes configurar una cuenta de retiro antes de solicitar un retiro");
 
             var rate = await _fx.GetUsdtClpRateAsync();
-            var clpEquivalent = Math.Round(amountUsdt * rate.Sell, 0, MidpointRounding.AwayFromZero);
+
+            // La comisión reduce lo que el usuario recibe, no lo que se retiene de su wallet:
+            // se descuenta AmountUsdt completo, pero el CLP pagado se calcula sobre el neto.
+            var feeUsdt = Math.Round(amountUsdt * _options.FeeRate, 8, MidpointRounding.AwayFromZero);
+            var netUsdt = amountUsdt - feeUsdt;
+            var clpEquivalent = Math.Round(netUsdt * rate.Sell, 0, MidpointRounding.AwayFromZero);
 
             var withdrawal = new Withdrawal
             {
@@ -43,6 +53,8 @@ namespace BackendMagaRace.Services
                 UserId = userId,
                 Status = WithdrawalStatus.Pending,
                 AmountUsdt = amountUsdt,
+                FeeUsdt = feeUsdt,
+                NetUsdt = netUsdt,
                 RateSnapshot = rate.Sell,
                 ClpEquivalent = clpEquivalent,
                 Bank = account.Bank,

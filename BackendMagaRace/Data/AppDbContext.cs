@@ -285,6 +285,8 @@ namespace BackendMagaRace.Data
                     .OnDelete(DeleteBehavior.Cascade);
 
                 e.Property(x => x.AmountUsdt).HasPrecision(18, 8);
+                e.Property(x => x.FeeUsdt).HasPrecision(18, 8);
+                e.Property(x => x.NetUsdt).HasPrecision(18, 8);
                 e.Property(x => x.RateSnapshot).HasPrecision(18, 4);
                 e.Property(x => x.ClpEquivalent).HasPrecision(18, 2);
             });
