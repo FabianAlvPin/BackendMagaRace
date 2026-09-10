@@ -69,6 +69,7 @@ builder.Services.Configure<TransbankOptions>(
 builder.Services.AddSingleton<ITransbankService, TransbankService>();
 builder.Services.AddScoped<IWithdrawalAccountService, WithdrawalAccountService>();
 builder.Services.AddScoped<IWithdrawalService, WithdrawalService>();
+builder.Services.AddScoped<IWalletMovementsService, WalletMovementsService>();
 builder.Services.AddScoped<IQualifierService, QualifierService>();
 
 // Servicios Qualifier

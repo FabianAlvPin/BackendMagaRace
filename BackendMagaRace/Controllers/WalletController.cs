@@ -16,11 +16,16 @@ namespace BackendMagaRace.Controllers
     {
         private readonly IWalletService _walletService;
         private readonly IExchangeRateService _exchangeRateService;
+        private readonly IWalletMovementsService _movementsService;
 
-        public WalletController(IWalletService walletService, IExchangeRateService exchangeRateService)
+        public WalletController(
+            IWalletService walletService,
+            IExchangeRateService exchangeRateService,
+            IWalletMovementsService movementsService)
         {
             _walletService = walletService;
             _exchangeRateService = exchangeRateService;
+            _movementsService = movementsService;
         }
 
         // Helper: obtiene UserId desde el token JWT
@@ -78,6 +83,15 @@ namespace BackendMagaRace.Controllers
         {
             var rate = await _exchangeRateService.GetUsdtClpRateAsync();
             return Ok(new { rate.Buy, rate.Sell, rate.FetchedAt });
+        }
+
+        // GET /wallet/movements?page=1&pageSize=20 -> depositos + retiros + premios, unificados y paginados
+        [HttpGet("movements")]
+        public async Task<IActionResult> GetMovements([FromQuery] int page = 1, [FromQuery] int pageSize = 20)
+        {
+            var userId = GetUserIdFromToken();
+            var result = await _movementsService.GetMovementsAsync(userId, page, pageSize);
+            return Ok(result);
         }
 
         // GET /wallet/ledger -> historial
