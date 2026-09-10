@@ -15,10 +15,12 @@ namespace BackendMagaRace.Controllers
     public class WalletController : ControllerBase
     {
         private readonly IWalletService _walletService;
+        private readonly IExchangeRateService _exchangeRateService;
 
-        public WalletController(IWalletService walletService)
+        public WalletController(IWalletService walletService, IExchangeRateService exchangeRateService)
         {
             _walletService = walletService;
+            _exchangeRateService = exchangeRateService;
         }
 
         // Helper: obtiene UserId desde el token JWT
@@ -68,6 +70,14 @@ namespace BackendMagaRace.Controllers
             {
                 return BadRequest(new { error = ex.Message });
             }
+        }
+
+        // GET /wallet/rate -> tipo de cambio USDT/CLP vigente
+        [HttpGet("rate")]
+        public async Task<IActionResult> GetRate()
+        {
+            var rate = await _exchangeRateService.GetUsdtClpRateAsync();
+            return Ok(new { rate.Buy, rate.Sell, rate.FetchedAt });
         }
 
         // GET /wallet/ledger -> historial
