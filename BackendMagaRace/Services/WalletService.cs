@@ -27,6 +27,25 @@ namespace BackendMagaRace.Services
             return wallet;
         }
 
+        // Lee la wallet con un row lock (SELECT ... FOR UPDATE) para usar dentro de
+        // Add/SubtractCreditsAsync. Solo tiene efecto real dentro de una transacción:
+        // si dos requests concurrentes intentan modificar el mismo saldo, la segunda
+        // queda bloqueada hasta que la primera termine (commit o rollback), y recién
+        // ahí lee el saldo ya actualizado. Sin esto, dos SubtractCreditsAsync casi
+        // simultáneos podían leer el mismo saldo "disponible" y ambos pasar la
+        // validación, permitiendo retirar más de lo que realmente había.
+        private async Task<Wallet> GetWalletForUpdateAsync(Guid userId)
+        {
+            var wallet = await _db.Wallets
+                .FromSqlInterpolated($"SELECT * FROM \"Wallets\" WHERE \"UserId\" = {userId} FOR UPDATE")
+                .FirstOrDefaultAsync();
+
+            if (wallet == null)
+                throw new Exception("Wallet no encontrada");
+
+            return wallet;
+        }
+
         // Agregar créditos (ej: compra o premio)
         // Si ya hay una transacción en curso en este DbContext (ej: un caller que
         // combina esto con otro cambio de estado), se reutiliza en vez de anidar una nueva.
@@ -39,7 +58,7 @@ namespace BackendMagaRace.Services
                 ?? await _db.Database.BeginTransactionAsync();
             try
             {
-                var wallet = await GetWalletAsync(userId);
+                var wallet = await GetWalletForUpdateAsync(userId);
                 wallet.Balance += amount;
                 wallet.UpdatedAt = DateTime.UtcNow;
 
@@ -77,7 +96,7 @@ namespace BackendMagaRace.Services
                 ?? await _db.Database.BeginTransactionAsync();
             try
             {
-                var wallet = await GetWalletAsync(userId);
+                var wallet = await GetWalletForUpdateAsync(userId);
                 if (wallet.Balance < amount)
                     throw new Exception("Saldo insuficiente");
 

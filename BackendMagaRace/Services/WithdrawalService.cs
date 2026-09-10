@@ -39,6 +39,11 @@ namespace BackendMagaRace.Services
             if (account == null)
                 throw new InvalidOperationException("Debes configurar una cuenta de retiro antes de solicitar un retiro");
 
+            var yaTienePendiente = await _db.Withdrawals
+                .AnyAsync(w => w.UserId == userId && w.Status == WithdrawalStatus.Pending);
+            if (yaTienePendiente)
+                throw new InvalidOperationException("Ya tienes una solicitud de retiro pendiente. Espera a que se resuelva antes de solicitar otra.");
+
             var rate = await _fx.GetUsdtClpRateAsync();
 
             // La comisión reduce lo que el usuario recibe, no lo que se retiene de su wallet:
