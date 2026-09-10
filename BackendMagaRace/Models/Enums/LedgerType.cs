@@ -6,6 +6,7 @@
         RaceWin = 1,        // Gana créditos en carrera
         RaceLoss = 2,       // Pierde créditos en carrera
         TournamentPrize = 3,// Premio torneo
+        EventPrize = 4,     // Premio por posición en evento semanal (time attack / QualifierEvent)
 
         // === COMPRAS ===
         Purchase = 10,      // Compra créditos con USDT
