@@ -1,9 +1,11 @@
 ﻿using BackendMagaRace.Models;
 using BackendMagaRace.Models.Enums;
+using BackendMagaRace.Options;
 using BackendMagaRace.Services;
 using BackendMagaRace.Services.Interfaces;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.Extensions.Options;
 using System.Security.Claims;
 using BackendMagaRace.Dtos;
 
@@ -17,15 +19,18 @@ namespace BackendMagaRace.Controllers
         private readonly IWalletService _walletService;
         private readonly IExchangeRateService _exchangeRateService;
         private readonly IWalletMovementsService _movementsService;
+        private readonly TransbankOptions _transbankOptions;
 
         public WalletController(
             IWalletService walletService,
             IExchangeRateService exchangeRateService,
-            IWalletMovementsService movementsService)
+            IWalletMovementsService movementsService,
+            IOptions<TransbankOptions> transbankOptions)
         {
             _walletService = walletService;
             _exchangeRateService = exchangeRateService;
             _movementsService = movementsService;
+            _transbankOptions = transbankOptions.Value;
         }
 
         // Helper: obtiene UserId desde el token JWT
@@ -77,12 +82,22 @@ namespace BackendMagaRace.Controllers
             }
         }
 
-        // GET /wallet/rate -> tipo de cambio USDT/CLP vigente
+        // GET /wallet/rate -> tipo de cambio USDT/CLP vigente + tasas de comisión Transbank
+        // (estas últimas se exponen para que el cliente pueda calcular el desglose de un
+        // depósito Transbank en vivo, sin tener que crear el depósito para verlo)
         [HttpGet("rate")]
         public async Task<IActionResult> GetRate()
         {
             var rate = await _exchangeRateService.GetUsdtClpRateAsync();
-            return Ok(new { rate.Buy, rate.Sell, rate.FetchedAt });
+            return Ok(new
+            {
+                rate.Buy,
+                rate.Sell,
+                rate.FetchedAt,
+                _transbankOptions.CreditFeeRate,
+                _transbankOptions.DebitFeeRate,
+                _transbankOptions.IvaRate
+            });
         }
 
         // GET /wallet/movements?page=1&pageSize=20 -> depositos + retiros + premios, unificados y paginados
