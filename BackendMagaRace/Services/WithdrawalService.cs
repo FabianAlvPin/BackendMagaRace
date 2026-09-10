@@ -73,8 +73,20 @@ namespace BackendMagaRace.Services
             await using var transaction = await _db.Database.BeginTransactionAsync();
             try
             {
-                // Retiene el saldo de inmediato para que no se pueda gastar mientras se revisa
+                // Retiene el saldo de inmediato para que no se pueda gastar mientras se revisa.
+                // Esto toma un row lock (FOR UPDATE) sobre la wallet del usuario, que de paso
+                // sirve para serializar solicitudes concurrentes del mismo usuario (ej. doble-tap
+                // del botón): la segunda queda bloqueada hasta que la primera termine.
                 await _wallet.SubtractCreditsAsync(userId, amountUsdt, LedgerType.WithdrawRequest, withdrawal.Id.ToString());
+
+                // Se repite la validación aquí, ya con el lock tomado: la primera llamada
+                // ya vio "no hay pendiente" antes de la transacción, pero si una segunda
+                // solicitud casi simultánea llega hasta acá, recién ahora (después de esperar
+                // el lock) puede ver la fila que la primera ya confirmó.
+                var yaTienePendienteConLock = await _db.Withdrawals
+                    .AnyAsync(w => w.UserId == userId && w.Status == WithdrawalStatus.Pending);
+                if (yaTienePendienteConLock)
+                    throw new InvalidOperationException("Ya tienes una solicitud de retiro pendiente. Espera a que se resuelva antes de solicitar otra.");
 
                 _db.Withdrawals.Add(withdrawal);
                 await _db.SaveChangesAsync();
