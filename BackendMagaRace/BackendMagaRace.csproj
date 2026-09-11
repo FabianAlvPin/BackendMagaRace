@@ -4,6 +4,11 @@
 		<TargetFramework>net8.0</TargetFramework>
 		<Nullable>enable</Nullable>
 		<ImplicitUsings>enable</ImplicitUsings>
+		<!-- El deploy publica a "publish/" dentro de esta misma carpeta de proyecto.
+		     Sin esta exclusión, cada publish detecta la salida del publish anterior
+		     como si fuera contenido del proyecto y la vuelve a copiar dentro de sí
+		     misma (publish/publish/publish/...), acumulando basura en cada deploy. -->
+		<DefaultItemExcludes>$(DefaultItemExcludes);publish/**</DefaultItemExcludes>
 	</PropertyGroup>
 
 	<ItemGroup>
