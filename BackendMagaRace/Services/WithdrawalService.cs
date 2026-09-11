@@ -157,8 +157,16 @@ namespace BackendMagaRace.Services
             await using var transaction = await _db.Database.BeginTransactionAsync();
             try
             {
-                // Devuelve el saldo retenido
+                // Devuelve el saldo retenido. Se toma el lock de la wallet antes de
+                // re-chequear el estado: si dos rechazos casi simultáneos llegan aquí
+                // (doble clic del admin), el segundo espera a que el primero termine y
+                // recién ahí ve que el retiro ya fue procesado, en vez de devolver el
+                // saldo dos veces.
                 await _wallet.AddCreditsAsync(withdrawal.UserId, withdrawal.AmountUsdt, LedgerType.WithdrawRejected, withdrawal.Id.ToString());
+
+                await _db.Entry(withdrawal).ReloadAsync();
+                if (withdrawal.Status != WithdrawalStatus.Pending)
+                    throw new InvalidOperationException("Este retiro ya fue procesado");
 
                 withdrawal.Status = WithdrawalStatus.Rejected;
                 withdrawal.ReviewedByAdminId = adminId;

@@ -122,7 +122,15 @@ namespace BackendMagaRace.Services
             await using var transaction = await _db.Database.BeginTransactionAsync();
             try
             {
+                // Toma el lock de la wallet del usuario antes de re-chequear el estado: si
+                // dos aprobaciones casi simultáneas llegan aquí (doble clic del admin), la
+                // segunda queda esperando a que la primera termine, y recién ahí ve que el
+                // depósito ya fue procesado, en vez de acreditar el saldo dos veces.
                 await _wallet.AddCreditsAsync(deposit.UserId, deposit.ExpectedUsdt, LedgerType.Purchase, deposit.Id.ToString());
+
+                await _db.Entry(deposit).ReloadAsync();
+                if (deposit.Status != DepositStatus.PendingReview)
+                    throw new InvalidOperationException("Este depósito ya fue procesado");
 
                 deposit.Status = DepositStatus.Completed;
                 deposit.ReviewedByAdminId = adminId;
@@ -230,16 +238,26 @@ namespace BackendMagaRace.Services
 
             var result = _transbank.CommitTransaction(token);
 
-            deposit.AuthorizationCode = result.AuthorizationCode;
-            deposit.CardTypeCode = result.PaymentTypeCode;
-
             if (result.IsAuthorized)
             {
                 await using var transaction = await _db.Database.BeginTransactionAsync();
                 try
                 {
+                    // Mismo patrón que en ApproveAsync: se toma el lock de la wallet primero,
+                    // y recién con el lock tomado se re-chequea el estado. Protege contra un
+                    // reintento duplicado del POST de retorno de Transbank llegando casi al
+                    // mismo tiempo (no acredita el mismo depósito dos veces).
                     await _wallet.AddCreditsAsync(deposit.UserId, deposit.ExpectedUsdt, LedgerType.Purchase, deposit.Id.ToString());
 
+                    await _db.Entry(deposit).ReloadAsync();
+                    if (deposit.Status != DepositStatus.Pending)
+                    {
+                        await transaction.RollbackAsync();
+                        return deposit;
+                    }
+
+                    deposit.AuthorizationCode = result.AuthorizationCode;
+                    deposit.CardTypeCode = result.PaymentTypeCode;
                     deposit.Status = DepositStatus.Completed;
                     deposit.ReviewedAt = DateTime.UtcNow;
 
@@ -254,6 +272,8 @@ namespace BackendMagaRace.Services
             }
             else
             {
+                deposit.AuthorizationCode = result.AuthorizationCode;
+                deposit.CardTypeCode = result.PaymentTypeCode;
                 deposit.Status = DepositStatus.Rejected;
                 deposit.AdminNotes = $"Transbank rechazó el pago (status={result.Status}, responseCode={result.ResponseCode})";
                 deposit.ReviewedAt = DateTime.UtcNow;
