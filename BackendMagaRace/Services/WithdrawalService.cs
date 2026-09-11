@@ -35,6 +35,9 @@ namespace BackendMagaRace.Services
             if (amountUsdt <= 0)
                 throw new InvalidOperationException("El monto debe ser mayor que 0");
 
+            if (amountUsdt < _options.MinAmountUsdt)
+                throw new InvalidOperationException($"El monto mínimo de retiro es {_options.MinAmountUsdt} USDT");
+
             var account = await _accounts.GetAsync(userId);
             if (account == null)
                 throw new InvalidOperationException("Debes configurar una cuenta de retiro antes de solicitar un retiro");

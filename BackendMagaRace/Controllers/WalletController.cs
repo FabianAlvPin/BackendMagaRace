@@ -100,7 +100,8 @@ namespace BackendMagaRace.Controllers
                 _transbankOptions.CreditFeeRate,
                 _transbankOptions.DebitFeeRate,
                 _transbankOptions.IvaRate,
-                _withdrawalOptions.FeeRate
+                _withdrawalOptions.FeeRate,
+                _withdrawalOptions.MinAmountUsdt
             });
         }
 
