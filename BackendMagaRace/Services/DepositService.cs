@@ -37,6 +37,30 @@ namespace BackendMagaRace.Services
             if (amountClp <= 0)
                 throw new InvalidOperationException("El monto debe ser mayor que 0");
 
+            // Solo se permite una transferencia bancaria activa a la vez: si el usuario
+            // cierra la app después de generarla, al volver no hay ambigüedad sobre a
+            // cuál depósito corresponde el comprobante que suba.
+            var pendiente = await _db.Deposits.FirstOrDefaultAsync(d =>
+                d.UserId == userId &&
+                d.Method == DepositMethod.BankTransfer &&
+                d.Status == DepositStatus.PendingReview);
+
+            if (pendiente != null)
+            {
+                if (DateTime.UtcNow > pendiente.RateExpiresAt)
+                {
+                    // La cotización ya venció sin que se subiera comprobante: se marca
+                    // expirada automáticamente en vez de dejar bloqueado al usuario.
+                    pendiente.Status = DepositStatus.Expired;
+                    await _db.SaveChangesAsync();
+                }
+                else
+                {
+                    throw new InvalidOperationException(
+                        "Ya tienes una transferencia pendiente. Sube el comprobante o espera a que se resuelva antes de generar otra.");
+                }
+            }
+
             var rate = await _fx.GetUsdtClpRateAsync();
 
             var deposit = new Deposit
