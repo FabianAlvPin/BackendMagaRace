@@ -105,7 +105,8 @@ namespace BackendMagaRace.Services
                 AmountUsdt = d.ExpectedUsdt,
                 StatusText = statusText,
                 StatusColor = color,
-                Date = d.ReviewedAt ?? d.CreatedAt
+                Date = d.ReviewedAt ?? d.CreatedAt,
+                HasReceipt = !string.IsNullOrEmpty(d.ReceiptUrl)
             };
         }
 

@@ -22,6 +22,10 @@ namespace BackendMagaRace.Dtos.Wallet
 
         // Fecha/hora del último cambio de estado
         public DateTime Date { get; set; }
+
+        // Solo aplica a "Deposito" (transferencia bancaria): si ya tiene comprobante
+        // adjunto. Sin significado para Retiro/Premio (siempre false).
+        public bool HasReceipt { get; set; }
     }
 
     public class WalletMovementsPageDto
