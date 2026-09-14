@@ -10,7 +10,7 @@ namespace BackendMagaRace.Services
 {
     public class DepositService : IDepositService
     {
-        private static readonly TimeSpan QuoteValidity = TimeSpan.FromMinutes(15);
+        private static readonly TimeSpan QuoteValidity = TimeSpan.FromMinutes(30);
 
         private readonly AppDbContext _db;
         private readonly IExchangeRateService _fx;
