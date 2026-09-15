@@ -9,6 +9,7 @@ namespace BackendMagaRace.Services.Interfaces
         Task<Deposit> GetOwnedAsync(Guid userId, Guid depositId);
         Task<Deposit> AttachReceiptAsync(Guid userId, Guid depositId, string receiptUrl);
         Task<List<Deposit>> GetUserDepositsAsync(Guid userId);
+        Task CancelAsync(Guid userId, Guid depositId);
 
         // Transbank
         Task<Deposit> CreateTransbankDepositAsync(Guid userId, decimal amountClp, TransbankPaymentMethod method, string returnUrl);

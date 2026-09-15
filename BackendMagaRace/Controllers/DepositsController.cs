@@ -146,6 +146,26 @@ namespace BackendMagaRace.Controllers
             }
         }
 
+        // POST /wallet/deposits/{id}/cancel -> el propio usuario cancela su solicitud pendiente
+        [HttpPost("{id}/cancel")]
+        public async Task<IActionResult> Cancel(Guid id)
+        {
+            var userId = GetUserIdFromToken();
+            try
+            {
+                await _deposits.CancelAsync(userId, id);
+                return Ok(new { message = "Solicitud cancelada" });
+            }
+            catch (KeyNotFoundException ex)
+            {
+                return NotFound(new { error = ex.Message });
+            }
+            catch (InvalidOperationException ex)
+            {
+                return BadRequest(new { error = ex.Message });
+            }
+        }
+
         // ======================================================
         // TRANSBANK
         // ======================================================

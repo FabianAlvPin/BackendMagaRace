@@ -95,6 +95,23 @@ namespace BackendMagaRace.Services
             return deposit;
         }
 
+        // El propio usuario cancela su solicitud (a diferencia de RejectAsync, que es
+        // exclusivo del admin). No toca la wallet: una transferencia bancaria nunca
+        // acredita saldo hasta que se aprueba, así que cancelarla es solo cambiar el estado.
+        public async Task CancelAsync(Guid userId, Guid depositId)
+        {
+            var deposit = await GetOwnedAsync(userId, depositId);
+
+            if (deposit.Status != DepositStatus.PendingReview)
+                throw new InvalidOperationException("Este depósito ya fue procesado");
+
+            deposit.Status = DepositStatus.Rejected;
+            deposit.ReviewedAt = DateTime.UtcNow;
+            deposit.AdminNotes = "Cancelado por el usuario";
+
+            await _db.SaveChangesAsync();
+        }
+
         public async Task<Deposit> AttachReceiptAsync(Guid userId, Guid depositId, string receiptUrl)
         {
             var deposit = await GetOwnedAsync(userId, depositId);
