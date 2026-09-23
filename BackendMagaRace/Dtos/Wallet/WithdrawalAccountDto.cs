@@ -7,6 +7,7 @@ namespace BackendMagaRace.Dtos.Wallet
         public string AccountNumber { get; set; } = string.Empty;
         public string Rut { get; set; } = string.Empty;
         public string HolderName { get; set; } = string.Empty;
+        public string Email { get; set; } = string.Empty;
     }
 
     public class WithdrawalAccountResponseDto
@@ -16,6 +17,7 @@ namespace BackendMagaRace.Dtos.Wallet
         public string AccountNumber { get; set; } = string.Empty;
         public string Rut { get; set; } = string.Empty;
         public string HolderName { get; set; } = string.Empty;
+        public string Email { get; set; } = string.Empty;
         public DateTime UpdatedAt { get; set; }
     }
 }

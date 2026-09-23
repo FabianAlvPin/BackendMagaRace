@@ -46,13 +46,13 @@ namespace BackendMagaRace.Controllers
         {
             if (string.IsNullOrWhiteSpace(dto.Bank) || string.IsNullOrWhiteSpace(dto.AccountType) ||
                 string.IsNullOrWhiteSpace(dto.AccountNumber) || string.IsNullOrWhiteSpace(dto.Rut) ||
-                string.IsNullOrWhiteSpace(dto.HolderName))
+                string.IsNullOrWhiteSpace(dto.HolderName) || string.IsNullOrWhiteSpace(dto.Email))
             {
                 return BadRequest(new { error = "Todos los campos son obligatorios" });
             }
 
             var userId = GetUserIdFromToken();
-            var account = await _accounts.SetAsync(userId, dto.Bank, dto.AccountType, dto.AccountNumber, dto.Rut, dto.HolderName);
+            var account = await _accounts.SetAsync(userId, dto.Bank, dto.AccountType, dto.AccountNumber, dto.Rut, dto.HolderName, dto.Email);
             return Ok(ToAccountDto(account));
         }
 
@@ -179,6 +179,7 @@ namespace BackendMagaRace.Controllers
             AccountNumber = a.AccountNumber,
             Rut = a.Rut,
             HolderName = a.HolderName,
+            Email = a.Email,
             UpdatedAt = a.UpdatedAt
         };
 

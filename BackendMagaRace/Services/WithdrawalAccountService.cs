@@ -19,7 +19,7 @@ namespace BackendMagaRace.Services
             return await _db.WithdrawalAccounts.FirstOrDefaultAsync(w => w.UserId == userId);
         }
 
-        public async Task<WithdrawalAccount> SetAsync(Guid userId, string bank, string accountType, string accountNumber, string rut, string holderName)
+        public async Task<WithdrawalAccount> SetAsync(Guid userId, string bank, string accountType, string accountNumber, string rut, string holderName, string email)
         {
             var account = await _db.WithdrawalAccounts.FirstOrDefaultAsync(w => w.UserId == userId);
 
@@ -39,6 +39,7 @@ namespace BackendMagaRace.Services
             account.AccountNumber = accountNumber;
             account.Rut = rut;
             account.HolderName = holderName;
+            account.Email = email;
             account.UpdatedAt = DateTime.UtcNow;
 
             await _db.SaveChangesAsync();
