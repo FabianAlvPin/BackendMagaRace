@@ -47,7 +47,10 @@ namespace BackendMagaRace.Services
 
             if (pendiente != null)
             {
-                if (DateTime.UtcNow > pendiente.RateExpiresAt)
+                // Si ya tiene comprobante adjunto, está legítimamente esperando revisión del
+                // admin sin importar cuánto tiempo pase — igual que el cron de expiración,
+                // nunca se auto-expira una solicitud con comprobante ya subido.
+                if (DateTime.UtcNow > pendiente.RateExpiresAt && string.IsNullOrEmpty(pendiente.ReceiptUrl))
                 {
                     // La cotización ya venció sin que se subiera comprobante: se marca
                     // expirada automáticamente en vez de dejar bloqueado al usuario.
