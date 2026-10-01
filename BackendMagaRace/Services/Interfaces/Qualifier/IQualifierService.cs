@@ -54,6 +54,11 @@ namespace BackendMagaRace.Services.Interfaces
         Task<object> GetRanking(
             Guid eventId);
 
+        // Versión liviana para sondeo periódico: solo líder + mi posición/tiempo.
+        Task<LeaderboardSummaryDto> GetLeaderboardSummary(
+            Guid eventId,
+            Guid userId);
+
 
 
         // Resultados

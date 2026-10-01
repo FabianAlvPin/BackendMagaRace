@@ -364,6 +364,51 @@ namespace BackendMagaRace.Services
             return await GetRanking(eventId);
         }
 
+        // Liviana a propósito: a diferencia de GetRanking, nunca trae ni ordena la
+        // lista completa de participantes. El líder sale de un Top-1, y mi posición
+        // se calcula con un COUNT de cuántos me superan — ambas queries son O(1) filas
+        // devueltas sin importar cuántos miles de jugadores tenga el evento.
+        public async Task<LeaderboardSummaryDto> GetLeaderboardSummary(Guid eventId, Guid userId)
+        {
+            var leader = await _context.QualifierSessions
+                .Where(x => x.QualifierEventId == eventId && x.BestLapMs != null)
+                .OrderBy(x => x.BestLapMs)
+                .Select(x => new RankingItemDto
+                {
+                    Position = 1,
+                    UserId = x.UserId,
+                    Username = x.User.Username,
+                    BestLapMs = x.BestLapMs!.Value
+                })
+                .FirstOrDefaultAsync();
+
+            var mySession = await _context.QualifierSessions
+                .Where(x => x.QualifierEventId == eventId && x.UserId == userId)
+                .Select(x => new { x.BestLapMs, Username = x.User.Username })
+                .FirstOrDefaultAsync();
+
+            RankingItemDto? me = null;
+
+            if (mySession != null && mySession.BestLapMs != null)
+            {
+                int betterCount = await _context.QualifierSessions
+                    .CountAsync(x =>
+                        x.QualifierEventId == eventId &&
+                        x.BestLapMs != null &&
+                        x.BestLapMs < mySession.BestLapMs);
+
+                me = new RankingItemDto
+                {
+                    Position = betterCount + 1,
+                    UserId = userId,
+                    Username = mySession.Username,
+                    BestLapMs = mySession.BestLapMs.Value
+                };
+            }
+
+            return new LeaderboardSummaryDto { Leader = leader, Me = me };
+        }
+
 
 
         public async Task CloseEvent(Guid eventId)
