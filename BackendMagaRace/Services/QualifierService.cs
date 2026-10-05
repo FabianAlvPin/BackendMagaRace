@@ -163,7 +163,9 @@ namespace BackendMagaRace.Services
                     x.Laps,
                     x.EntryCost,
                     x.BasePrize,
-                    CurrentPrizePool = x.BasePrize + (x.Entries.Count * x.EntryCost),
+                    // Premio total fijo: no se acumula con cada entrada pagada, el
+                    // organizador define el pool completo de antemano.
+                    CurrentPrizePool = x.BasePrize,
                     Prizes = x.Prizes.Select(p => new
                     {
                         p.Id,
@@ -192,7 +194,7 @@ namespace BackendMagaRace.Services
                     x.EntryCost,
                    
                     x.IsClosed,
-                    CurrentPrizePool = x.BasePrize + (x.Entries.Count * x.EntryCost)
+                    CurrentPrizePool = x.BasePrize
                 })
                 .FirstOrDefaultAsync();
         }
