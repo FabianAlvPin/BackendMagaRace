@@ -2,6 +2,7 @@
 using BackendMagaRace.Dtos.OnlineRace;
 using BackendMagaRace.Dtos.Qualifier;
 using BackendMagaRace.Models;
+using BackendMagaRace.Models.Enums;
 using BackendMagaRace.Services.Interfaces;
 using Microsoft.EntityFrameworkCore;
 
@@ -10,11 +11,13 @@ namespace BackendMagaRace.Services
     public class QualifierService : IQualifierService
     {
         private readonly AppDbContext _context;
+        private readonly IWalletService _wallet;
 
 
-        public QualifierService(AppDbContext context)
+        public QualifierService(AppDbContext context, IWalletService wallet)
         {
             _context = context;
+            _wallet = wallet;
         }
 
         public async Task<QualifierSession?> GetActiveSession(
@@ -67,47 +70,75 @@ namespace BackendMagaRace.Services
                     x.UserId == userId &&
                     x.QualifierEventId == qualifierEventId);
 
-            // 4. Si no tiene entrada, cobrar
-            if (existingEntry == null)
+            // 4-6: cobro + entrada + sesión van todos en una sola transacción. Antes el
+            // cobro era un "wallet.Balance -=" directo (sin row-lock ni registro en el
+            // ledger) y la entrada/sesión se guardaban en un SaveChanges aparte; si algo
+            // fallaba a mitad de camino podía cobrarse sin dejar entrada creada, o viceversa.
+            var ownsTransaction = _context.Database.CurrentTransaction == null;
+            var transaction = _context.Database.CurrentTransaction
+                ?? await _context.Database.BeginTransactionAsync();
+
+            try
             {
-                var wallet = await _context.Wallets
-                    .FirstOrDefaultAsync(x => x.UserId == userId);
+                // 4. Si no tiene entrada, cobrar
+                if (existingEntry == null)
+                {
+                    var wallet = await _context.Wallets
+                        .FirstOrDefaultAsync(x => x.UserId == userId);
 
-                if (wallet == null)
-                    throw new BusinessException("WALLET_NOT_FOUND", "No se encontró la billetera del jugador.");
+                    if (wallet == null)
+                        throw new BusinessException("WALLET_NOT_FOUND", "No se encontró la billetera del jugador.");
 
-                if (wallet.Balance < qualifierEvent.EntryCost)
-                    throw new BusinessException("INSUFFICIENT_BALANCE",
-                        $"Saldo insuficiente. Saldo: ${wallet.Balance:N0} - Entrada: ${qualifierEvent.EntryCost:N0}");
+                    if (wallet.Balance < qualifierEvent.EntryCost)
+                        throw new BusinessException("INSUFFICIENT_BALANCE",
+                            $"Saldo insuficiente. Saldo: ${wallet.Balance:N0} - Entrada: ${qualifierEvent.EntryCost:N0}");
 
-                wallet.Balance -= qualifierEvent.EntryCost;
+                    // Débito con row-lock (evita cobrar dos veces en requests concurrentes)
+                    // y deja un LedgerEntry -> aparece como movimiento visible en el wallet
+                    // (ver WalletMovementsService).
+                    await _wallet.SubtractCreditsAsync(
+                        userId,
+                        qualifierEvent.EntryCost,
+                        LedgerType.EventEntryFee,
+                        $"qualifier-entry:{qualifierEventId}");
 
-                _context.QualifierEntries.Add(new QualifierEntry
+                    _context.QualifierEntries.Add(new QualifierEntry
+                    {
+                        Id = Guid.NewGuid(),
+                        UserId = userId,
+                        QualifierEventId = qualifierEventId,
+                        EntryCost = qualifierEvent.EntryCost,
+                        PurchasedAt = DateTime.UtcNow,
+                        ActiveUntil = qualifierEvent.EndsAt
+                    });
+                }
+
+                // 5. Crear sesión
+                var session = new QualifierSession
                 {
                     Id = Guid.NewGuid(),
                     UserId = userId,
                     QualifierEventId = qualifierEventId,
-                    EntryCost = qualifierEvent.EntryCost,
-                    PurchasedAt = DateTime.UtcNow,
-                    ActiveUntil = qualifierEvent.EndsAt
-                });
+                    ActiveUntil = qualifierEvent.EndsAt,
+                    BestLapMs = null
+                };
+
+                _context.QualifierSessions.Add(session);
+
+                await _context.SaveChangesAsync();
+                if (ownsTransaction) await transaction.CommitAsync();
+
+                return session;
             }
-
-            // 5. Crear sesión
-            var session = new QualifierSession
+            catch
             {
-                Id = Guid.NewGuid(),
-                UserId = userId,
-                QualifierEventId = qualifierEventId,
-                ActiveUntil = qualifierEvent.EndsAt,
-                BestLapMs = null
-            };
-
-            _context.QualifierSessions.Add(session);
-
-            await _context.SaveChangesAsync();
-
-            return session;
+                if (ownsTransaction) await transaction.RollbackAsync();
+                throw;
+            }
+            finally
+            {
+                if (ownsTransaction) await transaction.DisposeAsync();
+            }
         }
         public async Task<object> GetActiveEvents()
         {

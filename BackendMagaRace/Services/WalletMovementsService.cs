@@ -20,6 +20,16 @@ namespace BackendMagaRace.Services
             LedgerType.AdminDebit
         };
 
+        // Tipos de ledger que representan un cobro (no un premio) y también deben verse
+        // como movimiento en el wallet.
+        private static readonly LedgerType[] ChargeTypes =
+        {
+            LedgerType.EventEntryFee
+        };
+
+        private static readonly LedgerType[] LedgerMovementTypes =
+            PrizeTypes.Concat(ChargeTypes).ToArray();
+
         private readonly AppDbContext _db;
 
         public WalletMovementsService(AppDbContext db)
@@ -41,7 +51,7 @@ namespace BackendMagaRace.Services
 
             var totalDeposits = await _db.Deposits.CountAsync(d => d.UserId == userId);
             var totalWithdrawals = await _db.Withdrawals.CountAsync(w => w.UserId == userId);
-            var totalPrizes = await _db.LedgerEntries.CountAsync(l => l.UserId == userId && PrizeTypes.Contains(l.Type));
+            var totalPrizes = await _db.LedgerEntries.CountAsync(l => l.UserId == userId && LedgerMovementTypes.Contains(l.Type));
 
             var deposits = await _db.Deposits
                 .Where(d => d.UserId == userId)
@@ -55,16 +65,16 @@ namespace BackendMagaRace.Services
                 .Take(fetchLimit)
                 .ToListAsync();
 
-            var prizes = await _db.LedgerEntries
-                .Where(l => l.UserId == userId && PrizeTypes.Contains(l.Type))
+            var ledgerMovements = await _db.LedgerEntries
+                .Where(l => l.UserId == userId && LedgerMovementTypes.Contains(l.Type))
                 .OrderByDescending(l => l.CreatedAt)
                 .Take(fetchLimit)
                 .ToListAsync();
 
-            var movements = new List<WalletMovementDto>(deposits.Count + withdrawals.Count + prizes.Count);
+            var movements = new List<WalletMovementDto>(deposits.Count + withdrawals.Count + ledgerMovements.Count);
             movements.AddRange(deposits.Select(MapDeposit));
             movements.AddRange(withdrawals.Select(MapWithdrawal));
-            movements.AddRange(prizes.Select(MapPrize));
+            movements.AddRange(ledgerMovements.Select(MapLedgerEntry));
 
             var items = movements
                 .OrderByDescending(m => m.Date)
@@ -132,7 +142,7 @@ namespace BackendMagaRace.Services
             };
         }
 
-        private static WalletMovementDto MapPrize(LedgerEntry l)
+        private static WalletMovementDto MapLedgerEntry(LedgerEntry l)
         {
             var description = l.Type switch
             {
@@ -141,16 +151,25 @@ namespace BackendMagaRace.Services
                 LedgerType.EventPrize => "Premio evento",
                 LedgerType.AdminCredit => "Ajuste admin",
                 LedgerType.AdminDebit => "Ajuste admin",
+                LedgerType.EventEntryFee => "Entrada a evento",
                 _ => "Premio"
             };
 
             // LedgerEntry.Amount siempre se guarda positivo; el signo lo da el Type
-            var amount = l.Type == LedgerType.AdminDebit ? -l.Amount : l.Amount;
+            var amount = (l.Type == LedgerType.AdminDebit || l.Type == LedgerType.EventEntryFee)
+                ? -l.Amount
+                : l.Amount;
+
+            // El cliente de Unity (WalletMovementsListController.PrefabForKind) solo tiene
+            // prefabs para "Deposito"/"Retiro"/"Premio". Se reutiliza "Retiro" para esto:
+            // mismo tratamiento visual que corresponde a un débito, sin necesitar un prefab
+            // nuevo. El texto sigue siendo genérico (Description), así que se lee bien igual.
+            var kind = l.Type == LedgerType.EventEntryFee ? "Retiro" : "Premio";
 
             return new WalletMovementDto
             {
                 Id = l.Id.ToString(),
-                Kind = "Premio",
+                Kind = kind,
                 Description = description,
                 AmountUsdt = amount,
                 StatusText = "Completado",
