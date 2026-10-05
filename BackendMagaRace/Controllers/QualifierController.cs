@@ -51,7 +51,8 @@ namespace BackendMagaRace.Controllers
                 return Ok(new QualifierSessionDto
                 {
                     Id = session.Id,
-                    ActiveUntil = session.ActiveUntil
+                    ActiveUntil = session.ActiveUntil,
+                    BestLapMs = session.BestLapMs ?? 0
                 });
             }
             catch (BusinessException ex)
