@@ -17,25 +17,31 @@ namespace BackendMagaRace.Services
         private readonly IWalletService _wallet;
         private readonly ITransbankService _transbank;
         private readonly TransbankOptions _transbankOptions;
+        private readonly DepositOptions _depositOptions;
 
         public DepositService(
             AppDbContext db,
             IExchangeRateService fx,
             IWalletService wallet,
             ITransbankService transbank,
-            IOptions<TransbankOptions> transbankOptions)
+            IOptions<TransbankOptions> transbankOptions,
+            IOptions<DepositOptions> depositOptions)
         {
             _db = db;
             _fx = fx;
             _wallet = wallet;
             _transbank = transbank;
             _transbankOptions = transbankOptions.Value;
+            _depositOptions = depositOptions.Value;
         }
 
         public async Task<Deposit> CreateBankTransferDepositAsync(Guid userId, decimal amountClp)
         {
             if (amountClp <= 0)
                 throw new InvalidOperationException("El monto debe ser mayor que 0");
+
+            if (amountClp < _depositOptions.MinAmountClp)
+                throw new InvalidOperationException($"El monto mínimo de depósito es ${_depositOptions.MinAmountClp:N0} CLP");
 
             // Solo se permite una transferencia bancaria activa a la vez: si el usuario
             // cierra la app después de generarla, al volver no hay ambigüedad sobre a

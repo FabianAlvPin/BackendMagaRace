@@ -62,6 +62,8 @@ builder.Services.AddScoped<IWalletService, WalletService>();
 builder.Services.AddHttpClient();
 builder.Services.AddSingleton<IExchangeRateService, ExchangeRateService>();
 builder.Services.AddScoped<IDepositService, DepositService>();
+builder.Services.Configure<DepositOptions>(
+    builder.Configuration.GetSection("Deposit"));
 builder.Services.Configure<CompanyBankAccountOptions>(
     builder.Configuration.GetSection("CompanyBankAccount"));
 builder.Services.Configure<TransbankOptions>(

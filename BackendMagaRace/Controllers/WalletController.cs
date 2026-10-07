@@ -21,19 +21,22 @@ namespace BackendMagaRace.Controllers
         private readonly IWalletMovementsService _movementsService;
         private readonly TransbankOptions _transbankOptions;
         private readonly WithdrawalOptions _withdrawalOptions;
+        private readonly DepositOptions _depositOptions;
 
         public WalletController(
             IWalletService walletService,
             IExchangeRateService exchangeRateService,
             IWalletMovementsService movementsService,
             IOptions<TransbankOptions> transbankOptions,
-            IOptions<WithdrawalOptions> withdrawalOptions)
+            IOptions<WithdrawalOptions> withdrawalOptions,
+            IOptions<DepositOptions> depositOptions)
         {
             _walletService = walletService;
             _exchangeRateService = exchangeRateService;
             _movementsService = movementsService;
             _transbankOptions = transbankOptions.Value;
             _withdrawalOptions = withdrawalOptions.Value;
+            _depositOptions = depositOptions.Value;
         }
 
         // Helper: obtiene UserId desde el token JWT
@@ -101,7 +104,8 @@ namespace BackendMagaRace.Controllers
                 _transbankOptions.DebitFeeRate,
                 _transbankOptions.IvaRate,
                 _withdrawalOptions.FeeRate,
-                _withdrawalOptions.MinAmountUsdt
+                _withdrawalOptions.MinAmountUsdt,
+                _depositOptions.MinAmountClp
             });
         }
 
