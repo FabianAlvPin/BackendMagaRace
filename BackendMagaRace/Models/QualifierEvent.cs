@@ -56,15 +56,18 @@ namespace BackendMagaRace.Models
         Reverse = 1
     }
 
+    // Clasificación solo por potencia (ver CarData.cs en Unity, debe coincidir 1:1):
+    // Street <=180 HP, Sport 181-260, Muscle 261-400, Super 401-600, Hyper 600+.
+    // Rally/Classic quedan deliberadamente afuera por ahora: no son tramos de potencia,
+    // son otro eje (tracción/terreno, antigüedad) que se agregará aparte si hace falta.
     public enum CarCategory
     {
         Any = 0,
         Street = 1,
         Sport = 2,
-        Super = 3,
-        Hyper = 4,
-        Rally = 5,
-        Classic = 6
+        Muscle = 3,
+        Super = 4,
+        Hyper = 5
     }
 
     public enum TransmissionType
