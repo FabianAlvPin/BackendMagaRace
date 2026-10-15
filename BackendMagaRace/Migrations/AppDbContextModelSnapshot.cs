@@ -103,6 +103,69 @@ namespace BackendMagaRace.Migrations
                     b.ToTable("Deposits");
                 });
 
+            modelBuilder.Entity("BackendMagaRace.Models.Duel", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid>("CreatorUserId")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime?>("FinishedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("RoomName")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<int>("Status")
+                        .HasColumnType("integer");
+
+                    b.Property<decimal>("WagerUsdt")
+                        .HasPrecision(18, 8)
+                        .HasColumnType("numeric(18,8)");
+
+                    b.HasKey("Id");
+
+                    b.ToTable("Duels");
+                });
+
+            modelBuilder.Entity("BackendMagaRace.Models.DuelParticipant", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<bool>("Disconnected")
+                        .HasColumnType("boolean");
+
+                    b.Property<Guid>("DuelId")
+                        .HasColumnType("uuid");
+
+                    b.Property<int?>("FinalPosition")
+                        .HasColumnType("integer");
+
+                    b.Property<decimal>("PrizeUsdt")
+                        .HasPrecision(18, 8)
+                        .HasColumnType("numeric(18,8)");
+
+                    b.Property<Guid>("UserId")
+                        .HasColumnType("uuid");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("UserId");
+
+                    b.HasIndex("DuelId", "UserId")
+                        .IsUnique();
+
+                    b.ToTable("DuelParticipants");
+                });
+
             modelBuilder.Entity("BackendMagaRace.Models.LapTime", b =>
                 {
                     b.Property<Guid>("Id")
@@ -624,6 +687,25 @@ namespace BackendMagaRace.Migrations
                     b.Navigation("User");
                 });
 
+            modelBuilder.Entity("BackendMagaRace.Models.DuelParticipant", b =>
+                {
+                    b.HasOne("BackendMagaRace.Models.Duel", "Duel")
+                        .WithMany("Participants")
+                        .HasForeignKey("DuelId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("BackendMagaRace.Models.User", "User")
+                        .WithMany()
+                        .HasForeignKey("UserId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Duel");
+
+                    b.Navigation("User");
+                });
+
             modelBuilder.Entity("BackendMagaRace.Models.LapTime", b =>
                 {
                     b.HasOne("BackendMagaRace.Models.Track", "Track")
@@ -764,6 +846,11 @@ namespace BackendMagaRace.Migrations
                     b.Navigation("Event");
 
                     b.Navigation("User");
+                });
+
+            modelBuilder.Entity("BackendMagaRace.Models.Duel", b =>
+                {
+                    b.Navigation("Participants");
                 });
 
             modelBuilder.Entity("BackendMagaRace.Models.OnlineRace", b =>

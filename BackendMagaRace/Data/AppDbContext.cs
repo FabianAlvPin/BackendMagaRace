@@ -37,6 +37,8 @@ namespace BackendMagaRace.Data
         public DbSet<WithdrawalAccount> WithdrawalAccounts => Set<WithdrawalAccount>();
         public DbSet<Deposit> Deposits => Set<Deposit>();
         public DbSet<Withdrawal> Withdrawals => Set<Withdrawal>();
+        public DbSet<Duel> Duels => Set<Duel>();
+        public DbSet<DuelParticipant> DuelParticipants => Set<DuelParticipant>();
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
 
@@ -289,6 +291,38 @@ namespace BackendMagaRace.Data
                 e.Property(x => x.NetUsdt).HasPrecision(18, 8);
                 e.Property(x => x.RateSnapshot).HasPrecision(18, 4);
                 e.Property(x => x.ClpEquivalent).HasPrecision(18, 2);
+            });
+
+            // ======================
+            // DUEL (Free World)
+            // ======================
+
+            modelBuilder.Entity<Duel>(e =>
+            {
+                e.HasKey(x => x.Id);
+
+                e.Property(x => x.Status).HasConversion<int>();
+                e.Property(x => x.WagerUsdt).HasPrecision(18, 8);
+
+                e.HasMany(x => x.Participants)
+                    .WithOne(x => x.Duel)
+                    .HasForeignKey(x => x.DuelId)
+                    .OnDelete(DeleteBehavior.Cascade);
+            });
+
+            modelBuilder.Entity<DuelParticipant>(e =>
+            {
+                e.HasKey(x => x.Id);
+
+                e.HasIndex(x => new { x.DuelId, x.UserId })
+                    .IsUnique();
+
+                e.Property(x => x.PrizeUsdt).HasPrecision(18, 8);
+
+                e.HasOne(x => x.User)
+                    .WithMany()
+                    .HasForeignKey(x => x.UserId)
+                    .OnDelete(DeleteBehavior.Cascade);
             });
 
             base.OnModelCreating(modelBuilder);

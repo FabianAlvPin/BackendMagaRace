@@ -9,6 +9,10 @@
         EventPrize = 4,     // Premio por posición en evento semanal (time attack / QualifierEvent)
         EventEntryFee = 5,  // Cobro de entrada a un QualifierEvent
 
+        // === DUELOS (Free World) ===
+        DuelWager = 30,     // Apuesta debitada al entrar a un duelo
+        DuelPrize = 31,     // Premio acreditado al repartir el pozo de un duelo
+
         // === COMPRAS ===
         Purchase = 10,      // Compra créditos con USDT
 

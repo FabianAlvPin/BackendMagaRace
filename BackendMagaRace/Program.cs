@@ -74,6 +74,9 @@ builder.Services.Configure<WithdrawalOptions>(
     builder.Configuration.GetSection("Withdrawal"));
 builder.Services.AddScoped<IWithdrawalService, WithdrawalService>();
 builder.Services.AddScoped<IWalletMovementsService, WalletMovementsService>();
+builder.Services.Configure<DuelOptions>(
+    builder.Configuration.GetSection("Duel"));
+builder.Services.AddScoped<IDuelService, DuelService>();
 builder.Services.AddScoped<IQualifierService, QualifierService>();
 
 // Servicios Qualifier
