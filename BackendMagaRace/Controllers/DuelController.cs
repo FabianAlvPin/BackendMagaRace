@@ -48,6 +48,13 @@ namespace BackendMagaRace.Controllers
             {
                 return BadRequest(new { error = ex.Message });
             }
+            catch (Exception ex)
+            {
+                // WalletService.SubtractCreditsAsync lanza System.Exception genérica
+                // (ej. "Saldo insuficiente"), no InvalidOperationException — sin este
+                // catch, un jugador sin saldo suficiente tiraba un 500 sin cuerpo.
+                return BadRequest(new { error = ex.Message });
+            }
         }
 
         // POST /duels/{id}/settle
@@ -79,6 +86,10 @@ namespace BackendMagaRace.Controllers
                 return NotFound(new { error = ex.Message });
             }
             catch (InvalidOperationException ex)
+            {
+                return BadRequest(new { error = ex.Message });
+            }
+            catch (Exception ex)
             {
                 return BadRequest(new { error = ex.Message });
             }
