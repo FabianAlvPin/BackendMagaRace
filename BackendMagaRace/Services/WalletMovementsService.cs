@@ -17,14 +17,16 @@ namespace BackendMagaRace.Services
             LedgerType.TournamentPrize,
             LedgerType.EventPrize,
             LedgerType.AdminCredit,
-            LedgerType.AdminDebit
+            LedgerType.AdminDebit,
+            LedgerType.DuelPrize
         };
 
         // Tipos de ledger que representan un cobro (no un premio) y también deben verse
         // como movimiento en el wallet.
         private static readonly LedgerType[] ChargeTypes =
         {
-            LedgerType.EventEntryFee
+            LedgerType.EventEntryFee,
+            LedgerType.DuelWager
         };
 
         private static readonly LedgerType[] LedgerMovementTypes =
@@ -152,11 +154,13 @@ namespace BackendMagaRace.Services
                 LedgerType.AdminCredit => "Ajuste admin",
                 LedgerType.AdminDebit => "Ajuste admin",
                 LedgerType.EventEntryFee => "Entrada a evento",
+                LedgerType.DuelWager => "Apuesta de desafío",
+                LedgerType.DuelPrize => "Premio de desafío",
                 _ => "Premio"
             };
 
             // LedgerEntry.Amount siempre se guarda positivo; el signo lo da el Type
-            var amount = (l.Type == LedgerType.AdminDebit || l.Type == LedgerType.EventEntryFee)
+            var amount = (l.Type == LedgerType.AdminDebit || l.Type == LedgerType.EventEntryFee || l.Type == LedgerType.DuelWager)
                 ? -l.Amount
                 : l.Amount;
 
@@ -164,7 +168,7 @@ namespace BackendMagaRace.Services
             // prefabs para "Deposito"/"Retiro"/"Premio". Se reutiliza "Retiro" para esto:
             // mismo tratamiento visual que corresponde a un débito, sin necesitar un prefab
             // nuevo. El texto sigue siendo genérico (Description), así que se lee bien igual.
-            var kind = l.Type == LedgerType.EventEntryFee ? "Retiro" : "Premio";
+            var kind = (l.Type == LedgerType.EventEntryFee || l.Type == LedgerType.DuelWager) ? "Retiro" : "Premio";
 
             return new WalletMovementDto
             {
