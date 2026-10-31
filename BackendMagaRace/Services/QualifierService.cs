@@ -155,6 +155,7 @@ namespace BackendMagaRace.Services
                     x.Name,
                     x.TrackId,
                     TrackName = x.Track.Name,
+                    SceneName = x.Track.SceneName,
                     x.StartsAt,
                     x.EndsAt,
                     x.Direction,
