@@ -73,6 +73,7 @@ namespace BackendMagaRace.Models
     public enum TransmissionType
     {
         Automatic = 0,
-        Manual = 1
+        Manual = 1,
+        Any = 2 // ya usado por Unity (QualifierDetailController muestra "AT / MT"), formalizado acá
     }
 }
